@@ -7,15 +7,15 @@
 #include "HYPRE_struct_ls.h"
 #include "ex.h"
 
-#define NX 50  // Grid points in X
-#define NY 50  // Grid points in Y
+#define GNX 50  // Grid points in X
+#define GNY 50  // Grid points in Y
 #define TIME_STEPS 10 // Number of time steps
 #define DT 0.01 // Time step size
 #define ALPHA 0.1 // Absorption coefficient
 
 class RadSolve {
 public:
-    RadSolve() {
+    RadSolve(int nx, int ny) : NX(nx), NY(ny), T(nx, std::vector<double>(ny, 300.0)) {
         MPI_Init(NULL, NULL);
         HYPRE_StructGridCreate(MPI_COMM_WORLD, 2, &grid);
         HYPRE_StructStencilCreate(2, 5, &stencil);
@@ -32,6 +32,22 @@ public:
         HYPRE_StructVectorDestroy(x);
         MPI_Finalize();
     }
+
+    // Method to return the temperature field
+    const std::vector<std::vector<double>>& getTemperatureField() const {
+        return T;
+    }
+
+    // Example function to modify the temperature field
+    void setTemperature(int i, int j, double value) {
+        if (i >= 0 && i < NX && j >= 0 && j < NY) {
+            T[i][j] = value;
+        } else {
+            std::cerr << "Error: Index out of bounds!" << std::endl;
+        }
+    }
+
+
 
     void readMesh(const std::string& filename) {
         std::ifstream meshFile(filename);
@@ -71,7 +87,7 @@ public:
     }
 
     void solveRadiationTransport() {
-        double T[NX][NY];
+        //double T[NX][NY];
         for (int i = 0; i < NX; i++)
             for (int j = 0; j < NY; j++)
                 T[i][j] = 300.0;  // Initial temperature field
@@ -108,19 +124,57 @@ public:
         }
     }
 
+   // Function to write temperature data to a VTK file
+    void write_vtk_file(const std::vector<std::vector<double>> &T, int time_step, const std::string &filename = "temperature") {
+        std::string vtk_filename = filename + "_" + std::to_string(time_step) + ".vtk";
+        std::ofstream vtk_file(vtk_filename);
+
+        if (!vtk_file) {
+            std::cerr << "Error: Unable to open file for writing!" << std::endl;
+            return;
+        }
+
+        vtk_file << "# vtk DataFile Version 3.0\n";
+        vtk_file << "Temperature field output\n";
+        vtk_file << "ASCII\n";
+        vtk_file << "DATASET STRUCTURED_POINTS\n";
+        vtk_file << "DIMENSIONS " << NX << " " << NY << " 1\n";
+        vtk_file << "ORIGIN 0 0 0\n";
+        vtk_file << "SPACING 1.0 1.0 1.0\n";
+        vtk_file << "POINT_DATA " << NX * NY << "\n";
+        vtk_file << "SCALARS Temperature float\n";
+        vtk_file << "LOOKUP_TABLE default\n";
+
+        // Write the temperature values in row-major order
+        for (int j = 0; j < NY; j++) {
+            for (int i = 0; i < NX; i++) {
+                vtk_file << T[i][j] << "\n";
+            }
+        }
+
+        vtk_file.close();
+        std::cout << "VTK file '" << vtk_filename << "' written successfully!" << std::endl;
+    }
+
+
+
+
 private:
+    int NX, NY; // Grid dimensions 
     HYPRE_StructGrid grid;
     HYPRE_StructStencil stencil;
     HYPRE_StructMatrix A;
     HYPRE_StructVector b, x;
+    std::vector<std::vector<double>> T; // Temperature field
     HYPRE_StructSolver solver;
     std::vector<std::pair<double, double>> nodes;
 };
 
 int main(int argc, char *argv[]) {
-    RadSolve solver;
+    RadSolve solver(GNX, GNY);  // Create RadSolve instance with grid dimensions
     solver.readMesh("mesh.msh");  // Read mesh from Gmsh file
     solver.setupGrid();
     solver.solveRadiationTransport();
+    solver.write_vtk_file(solver.getTemperatureField(), 0);  // Write initial temperature field to VTK file
     return 0;
 }

@@ -129,6 +129,7 @@ int main(int argc, char *argv[]) {
         // Cleanup solver for the current time step
         HYPRE_StructPCGDestroy(solver);
     }
+    
 
     // Cleanup
     HYPRE_StructMatrixDestroy(A);

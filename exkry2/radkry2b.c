@@ -9,21 +9,21 @@
 #include "mpi.h"
 
 #define NX 50  // Grid points in X
-#define NY 50  // Grid points in Y
-#define TIME_STEPS 100000 // Number of time steps
+#define NY 100  // Grid points in Y
+#define TIME_STEPS 50000 // Number of time steps
 #define WAVELENGTHS 3 // Spectral bands
 #define ALPHA 0.2 // Diffusion coefficient
 #define h 6.626e-34 // Planck's constant
 #define c 3.0e8 // Speed of light
 #define k_B 1.38e-23 // Boltzmann constant
-#define DELTAX 0.001
+#define DELTAX 0.01
 
 // Radiation entrance settings
 #define APERTURE_START NY/3  // Aperture position start
 #define APERTURE_END 2*NY/3  // Aperture position end
 
 // Fixed angle for directional radiation (Adjustable parameter)
-#define ANGLE_DEGREES 90.0  // Change this to vary direction
+#define ANGLE_DEGREES 0.0  // Change this to vary direction
 
 // Convert angle to bias factor (favor propagation direction)
 double compute_biasx_factor(double angle) {
@@ -106,10 +106,10 @@ int main(int argc, char *argv[]) {
             T[i][j] = 300.0;
 
 
-    for (int j = (NY/2)-3; j < (NY/2)+3; j++)
+    for (int i = (NX/2)-3; i < (NX/2)+3; i++)
     // for (int j = 3; j < 6; j++)
-            for (int i = 0; i < 3; i++)
-                     T[i][j] = 50000.0; // Initial temperature (room temp)    
+            for (int j = 0; j < 3; j++)
+                     T[i][j] = 2000.0; // Initial temperature (room temp)    
 
     // Define wavelength bands (IR range)
     double lambda[WAVELENGTHS] = {1e-6, 5e-6, 10e-6};
@@ -167,11 +167,11 @@ int main(int argc, char *argv[]) {
                 double source_val = 0.0;
 
                 // Only emit radiation if within the aperture region at x = 0
-                if (i == 0 && j >= APERTURE_START && j <= APERTURE_END) {
+                //if (i >= 0 && i<4 && j >= APERTURE_START && j <= APERTURE_END) {
                     for (int w = 0; w < WAVELENGTHS; w++) {
                         source_val += planck_radiance(T[i][j], lambda[w]);
                     }
-                }
+                //}
 
                 HYPRE_StructVectorSetValues(b, index, source_val);
             }
@@ -200,7 +200,7 @@ int main(int argc, char *argv[]) {
                 //double diffusion = ALPHA * (T[i+1][j] + T[i-1][j] + T[i][j+1] + T[i][j-1] - 4 * T[i][j]);
 
                 // Final temperature update
-                T_new[i][j] = T[i][j] + sol * 0.025 ;
+                T_new[i][j] = T[i][j] + sol * 0.015 ;
             }
 
 
@@ -216,7 +216,7 @@ int main(int argc, char *argv[]) {
                 double diffusion = ALPHA * (T[i+1][j] + 1.1*bias_x*T[i-1][j] + T[i][j+1] +1.1*bias_y* T[i][j-1] - 4 * T[i][j]);
 
                 // Final temperature update
-                T_new[i][j] = T[i][j] + diffusion * 0.025 + directional_term;
+                T_new[i][j] = T[i][j] + diffusion * 0.015 + directional_term;
             }
 
 
@@ -234,9 +234,9 @@ int main(int argc, char *argv[]) {
         }
 
         //for (int j = 3; j < 6; j++)
-        for (int j = (NY/2)-3; j < (NY/2)+3; j++)
-            for (int i = 0; i < 3; i++)
-                     T_new[i][j] = 50000.0; // Initial temperature (room temp)    
+        for (int i = (NX/2)-3; i < (NX/2)+3; i++)
+            for (int j = 0; j < 3; j++)
+                     T_new[i][j] = 2000.0; // Initial temperature (room temp)    
 
         
         // Copy new values into T

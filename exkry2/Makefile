@@ -118,11 +118,11 @@ complex: $(COMPLEXPROGS)
 ########################################################################
 # Example 1
 ########################################################################
-#radkry2: radkry2e.o
-#	$(LINK_CC) -o $@ $^ $(LFLAGS)
+radkry2: radkry2b.o
+	$(LINK_CC) -o $@ $^ $(LFLAGS)
 
-radkry2: radkry2f.o
-	$(LINK_CXX) -o $@ $^ $(LFLAGS)
+#radkry2: radkry2f.o
+#	$(LINK_CXX) -o $@ $^ $(LFLAGS)
 
 
 ########################################################################
