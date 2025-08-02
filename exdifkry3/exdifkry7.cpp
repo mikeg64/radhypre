@@ -8,6 +8,11 @@
 #include <random> // for std::mt19937 and std::random_device
 #include "ex.h"
 
+
+//This version is developed from version 6
+//but we attempt a more rigorous approach to the temperature iteration
+//with linearization over multiple frequency groups
+
 //Using the GMRES FE solver set the system as a top hat configuration
 // 2 rows of 5 square boxes
 // mats v. high heat capcity, v high aborption, low emissivity
@@ -23,9 +28,9 @@
 
 
 constexpr int NX = 160, NY = 64, NZ = 1;
-constexpr int NSTEP = 30000;
-constexpr double dx = 1 / NX;
-constexpr double dt = 0.001;  // time step size
+constexpr int NSTEP = 1000;
+constexpr double dx = 1.0 / NX;
+constexpr double dt = 0.1;  // time step size
 const int num_freq_bins = 10; // Number of frequency bins
 const double c = 3e10; // Speed of light in cm/s
 const double a = 7.5646e-15; // Radiation constant in erg/cm^3/K^4
@@ -34,9 +39,6 @@ const double h = 6.626e-27; // Planck's constant in erg.s
 const double k = 1.38064852e-16; // Boltzmann constant in erg/K
 const double TMIN = 293.0; // Minimum temperature - comfortable room temperature
 const double TMAX = 10000.0; // Maximum temperature
-const double TINI = 10000.0; // Maximum temperature
-const double EINILT2 = 0.000000000001; // Initial temperature for top hot configuration
-const double EINIEQ2 = 0.0000000001; // Initial temperature for equilibrium configuration
 
 const double temptol=0.1;
 const int maxtiter=10;  //temperature iteration
@@ -87,27 +89,31 @@ int boundary(int i, int j) {
 }
 
 
-double absorption_coeff(int i, int j) {
-    double siga=0.1;
-    double sigaupper=0.000001;
+double absorption_coeff(int i, int j, int freq_bin = 0) {
+    //frequency dependent absorption coefficient
+    //for this example we use a constant value for simplicity
+    double siga=1.0;
+    double sigaupper=0.00001;
 
     if ((i < NX / 5   && j > NY / 2)   ||  (i > (4*NX / 5)   && j > NY / 2)   ||  (i > (2*NX / 5) &&  i<(3*NX/5)  && j < NY / 2) ) {
         siga = sigaupper ;
     } else {
-        siga = 0.9;
+        siga = 0.5;
     }
     
     return siga;
 }
 
-double specific_heat(int i, int j) {
-    double ca=0.01;
+double specific_heat(int i, int j, int freq_bin = 0) {
+    //frequency dependent heat capacity
+    //for this example we use a constant value for simplicity
+    double ca=200.0;
     double caupper=20000.0;
 
     if ((i < NX / 5   && j > NY / 2)   ||  (i > (4*NX / 5)   && j > NY / 2)   ||  (i > (2*NX / 5) &&  i<(3*NX/5)  && j < NY / 2) ) {
         ca = caupper ;
     } else {
-        ca = 0.9;
+        ca = 0.1;
     }
     
     return ca;
@@ -132,7 +138,7 @@ double initial_temperature(int i, int j) {
     double tini=300;
     if(i<4 &&  j< 3*(NY/2)/4   && j>NY/4) {
     //if(i<4 &&  j< (NY/2)/2   ) {
-        tini=TINI; // top hot configuration
+        tini=10000.0; // top hot configuration
     } else {
         tini=300.0;
     }
@@ -195,7 +201,7 @@ int main(int argc, char** argv) {
     double tnp1mtn[NX][NY][NZ]; // 3D array for temperature difference
     double Tc[NX][NY][NZ]; // 3D array for temperature at current time step
     double Tn[NX][NY][NZ]; // 3D array for temperature at current time step
-    double sum1, sum2, sum3,sum4;
+    double sum1, sum2, sum3;
     double Eag[num_freq_bins][NX][NY][NZ]; // 4D array for temperature
     double Bag[num_freq_bins][NX][NY][NZ]; // 4D array for temperature
     double Eagn[num_freq_bins][NX][NY][NZ]; // new values
@@ -213,14 +219,16 @@ int main(int argc, char** argv) {
         Tn[i][j][k] = T; // new temp
         tnp1mtn[i][j][k] = 0.0; // Initialize temperature difference
         E[idx] = planck_source(T);
-        mu_a[idx] = absorption_coeff(i,j);
-        cv[idx] = specific_heat(i,j);
+
         source[idx] = planck_source(T);
         for(int n=0; n<num_freq_bins; n++) {
-            Eag[n][i][j][k] = B_nu(T, (n+1)*1e14); // Example frequency bin
+            mu_a[idx] = absorption_coeff(i,j,n);
+            cv[idx] = specific_heat(i,j,n);
+            Eag[n][i][j][k] = B_nu(1.01*T, (n+1)*1e14); // Example frequency bin
             Bag[n][i][j][k] = B_nu(T, (n+1)*1e14); // Example frequency bin
             Eagn[n][i][j][k] = B_nu(1.01*T, (n+1)*1e14); // Example frequency bin
             Bagn[n][i][j][k] = B_nu(T, (n+1)*1e14); // Example frequency bin
+
         }
       
     }
@@ -242,16 +250,6 @@ int main(int argc, char** argv) {
             //Ea[i][j][k] = E[index(i, j, k)];
             int idx = index(i, j, k);
             Eagn[0][i][j][k] = cv[idx];
-            for(int n=0; n<num_freq_bins; n++) {
-            if(i<1 &&  j< 3*(NY/2)/4   && j>NY/4  && n<2  || n>2 ) {
-                            //if(i<4 &&  j< (NY/2)/2   ) {
-                           ;//Eagn[n][i][j][k]=EINILT2; // top hot configuration
-                }
-             if(i<1 &&  j< 3*(NY/2)/4   && j>NY/4  && n==2 ) {
-                            //if(i<4 &&  j< (NY/2)/2   ) {
-                           ;//Eagn[n][i][j][k]=EINIEQ2; // top hot configuration
-                }
-            }
             
             //std::cout << i << "  " << j  << "   " <<  k << "  " <<  index(i,j,k) <<   "  " << Ea[i][j][k] << std::endl;
         }
@@ -314,12 +312,14 @@ int main(int argc, char** argv) {
                 int idx = index(i, j, k);
                 sum1=0;
                 sum2=cv[index(i,j,k)]/dt;
-                sum4=0.0;
+                sum3=0.0;
                 for(int n=0; n<num_freq_bins; n++) {
+                    mu_a[idx] = absorption_coeff(i,j,n);
+                    cv[idx] = specific_heat(i,j,n);
                     Bag[n][i][j][k]=Bagn[n][i][j][k];                
                     sum1+=c*mu_a[index(i,j,k)]*(Eagn[n][i][j][k]-Bag[n][i][j][k]);
-                    //sum2+=c*mu_a[index(i,j,k)]*dBnudT(Tc[i][j][k],(n+1)*1.0e14);
-                    //sum4+=B_nu(Tc[i][j][k],(n+1)*1.0e14) * mu_a[index(i,j,k)];
+                    sum2+=c*mu_a[index(i,j,k)]*dBnudT(Tc[i][j][k],(n+1)*1.0e14);
+                    sum3+=B_nu(Tc[i][j][k],(n+1)*1.0e14) * mu_a[index(i,j,k)];
 
             }
             source[idx] = sum3; // Update source term
@@ -382,16 +382,6 @@ int main(int argc, char** argv) {
         for (int i = 0; i < NX; ++i) {
             //Ea[i][j][k] = E[index(i, j, k)];
             Eagn[n][i][j][k] = E[index(i, j, k)];
-
-            if(i<4 &&  j< 3*(NY/2)/4   && j>NY/4  && n<2  || n>2 ){
-                            //if(i<4 &&  j< (NY/2)/2   ) {
-
-                            Eagn[n][i][j][k]= EINILT2*((1.0/(1.0-exp(-(step-6000)*dt/1.0)))-(1.0/(1.0-exp(-(step-10000)*dt/1.0)))); // top hot configuration
-                }
-             if(i<4 &&  j< 3*(NY/2)/4   && j>NY/4  && n==2 ) {
-                            //if(i<4 &&  j< (NY/2)/2   ) {
-                            Eagn[n][i][j][k]= EINIEQ2*((1.0/(1.0-exp(-(step-6000)*dt/1.0)))-(1.0/(1.0-exp(-(step-10000)*dt/1.0)))); // top hot configuration
-                }
         }
     }  //end of loop over frequencies
 
@@ -401,26 +391,20 @@ int main(int argc, char** argv) {
         for (int i = 0; i < NX; ++i) {
 
                 sum1=0;
-                sum4=cv[index(i,j,k)]/dt;
-                sum2=0.0;
+                sum2=cv[index(i,j,k)]/dt;
                 for(int n=0; n<num_freq_bins; n++) 
                 {
                     sum1+=c*mu_a[index(i,j,k)]*(Eagn[n][i][j][k]-Bag[n][i][j][k]);
-                    sum2+=(c*mu_a[index(i,j,k)]*dBnudT(Tc[i][j][k],(n+1)*1.0e14))/sum4;
+                    sum2+=c*mu_a[index(i,j,k)]*dBnudT(Tc[i][j][k],(n+1)*1.0e14);
                               
                 }
-                Tn[i][j][k]=Tc[i][j][k] + ((sum1/sum4)/(1+sum2));
+                Tn[i][j][k]=Tc[i][j][k] + (sum1/sum2);
                 //apply boundary condition
 
 
                 if (boundary(i, j) == 1 || boundary(i, j) == 2 || boundary(i, j) == 3) {
                     Tn[i][j][k] = initial_temperature(i,j); // Reset temperature for boundary conditions
                 }
-                if(i<4 &&  j< 3*(NY/2)/4   && j>NY/4) {
-                            //if(i<4 &&  j< (NY/2)/2   ) {
-                           Tn[i][j][k]=TINI; // top hot configuration
-                }
-
 
                 Tc[i][j][k] = std::max(Tn[i][j][k], TMIN); // Ensure non-negative temperature
 
