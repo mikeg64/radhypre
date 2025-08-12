@@ -26,11 +26,11 @@
 
 
 constexpr int NX = 160, NY = 64, NZ = 1;
-constexpr int NSTEP = 100000;
-constexpr int N_SAVEINTERVAL=100;
+constexpr int NSTEP = 5000;
+constexpr int N_SAVEINTERVAL=5;
 constexpr double dx = 0.07 / NX;
 constexpr double dy = 0.05 / NY;
-constexpr double dt = 0.01;  // time step size
+constexpr double dt = 0.000001;  // time step size
 const int num_freq_bins = 10; // Number of frequency bins
 const double c = 3e10; // Speed of light in cm/s
 const double a = 7.5646e-15; // Radiation constant in erg/cm^3/K^4
@@ -49,6 +49,7 @@ const int BUY=1;//upper y 1
 const int BLY=2;//lower y 2
 const int BLX=3;//left x 3
 const int BRX=4;//right x 4
+const double SCALE=1.0e-7; // Scaling factor for the diagonal term in the matrix
 
 int boundary(int i, int j) {
     // Define the boundaries based on the grid indices
@@ -155,12 +156,12 @@ double ereflect(int n, int i, int j)
 
 double absorption_coeff(int i, int j) {
     double siga;
-    double sigaupper=200.0;
+    double sigaupper=2000.0;
 
     if ((i < NX / 5   && j > NY / 2)   ||  (i > (4*NX / 5)   && j > NY / 2)   ||  (i > (2*NX / 5) &&  i<(3*NX/5)  && j < NY / 2) ) {
         siga = sigaupper ;
     } else {
-        siga = 0.5;
+        siga = 20.0;
     }
     
     return siga;
@@ -195,8 +196,22 @@ double planck_emission(double nu, double T) {
 
 
 // Function to compute Planck distribution
-double B_nu(double T, double nu) {
-    return (2 * h * pow(nu, 3) / pow(c, 2)) / (exp(h * nu / (k * T)) - 1);
+double B_nu(double T, double nu, double dbnu=-1.0) {
+    double tot=0;
+    double nud=nu;
+
+    if(dbnu==-1.0) {
+        tot = (2 * h * std::pow(nu, 3) / std::pow(c, 2)) / (std::exp(h * nu / (k * T)) - 1);
+    } else {
+        nud=nu-(dbnu/2.0);
+        nu=(nud>0?nud:nu); // Avoid division by zero
+        tot = (2 * h * std::pow(nu, 3) / std::pow(c, 2)) / (std::exp(h * nu / (k * T)) - 1) * dbnu;
+    }
+
+
+    tot= (2 * h * pow(nu, 3) / pow(c, 2)) / (exp(h * nu / (k * T)) - 1);
+
+    return tot;
 }
 
 // Function to compute Planck distribution
@@ -517,6 +532,9 @@ int main(int argc, char** argv) {
 
         double a_nu = 0.7; // Initialize a_nu  should be computed using rosseland mean opacity
         double kappa_nu ;
+        double sumrhs=0.0;
+        double sumdiag=0.0;
+        double sumemis=0.0;
         for(int nf=0; nf<num_freq_bins; nf++) {
             int n= shuffled[nf] - 1; // Get the shuffled frequency index (0-based)
         for (int k = 0; k < NZ; ++k)
@@ -538,7 +556,7 @@ int main(int argc, char** argv) {
 
             int idx = index(i, j, k);
             double D = 1.0 / (3.0 * mu_a[idx]);
-            double diag = (1.0/ (c*dt)) + 6.0 * D / (dx * dx) + mu_a[idx];
+            double diag = SCALE*((1.0/ (c*dt)) + 6.0 * D / (dx * dx) + mu_a[idx]);
 
             values[0] = diag;
             for (int s = 1; s < 7; ++s) values[s] = -D / (dx * dx);
@@ -547,9 +565,15 @@ int main(int argc, char** argv) {
             // old HYPRE_StructMatrixSetValues(A, ijk, 7, (int[]){0,1,2,3,4,5,6}, values.data());
              HYPRE_StructMatrixSetValues(A, ijk, 7, (HYPRE_Int*)iindex, values.data());
              
-            double emission = mu_a[index(i,j,k)]*dBnudT(Tc[i][j][k],(nf+1)*1.0e14)*kappa_nu*dt*(sum4    -sum3);
+            //double emission = mu_a[index(i,j,k)]*dBnudT(Tc[i][j][k],(nf+1)*1.0e14)*kappa_nu*dt*(sum4    -sum3);
+            //double emission = mu_a[index(i,j,k)] * (Bag[n][i][j][k] - Eag[n][i][j][k]); // classic source term
+            double emission = mu_a[index(i,j,k)] * Bag[n][i][j][k]; // if treating B_nu as external source
             //emission=0.0;
             double rhs = (Eag[n][i][j][k]  / (c*dt)) + mu_a[idx]*Bag[n][i][j][k] +emission;
+
+            sumrhs+=rhs;
+            sumemis=sumemis+= emission;
+            sumdiag+=diag;
             //HYPRE_StructVectorSetValues(b, ijk, &rhs);
             HYPRE_StructVectorSetValues(b, ijk, rhs);
         }
@@ -716,7 +740,11 @@ int main(int argc, char** argv) {
             write_vtk_file(Tc, (step/N_SAVEINTERVAL));
 
         if(step%N_SAVEINTERVAL==0)
+        {
             std::cout << "Step: " << step << ", Total Energy: " << etotn <<  "   " <<etot<< "   " << etotn-etot <<std::endl;
+            std::cout << "Sum of RHS: " << sumrhs/(NX*NY*NZ*num_freq_bins) << ", Sum of Diagonal: " << sumdiag/(NX*NY*NZ*num_freq_bins) << ", Sum of Emission: " << sumemis/(NX*NY*NZ*num_freq_bins) << std::endl;
+            std::cout << "Average Temperature: " << etotn/(NX*NY*NZ*num_freq_bins) << std::endl;
+        }
 
 
 
