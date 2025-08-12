@@ -10,6 +10,12 @@
 #include <iostream>
 
 #include "ex.h"
+#include "include/setup.h"
+#include "include/boundary.h"
+#include "include/material.h"
+#include "include/physics.h"
+#include "include/solver.h"
+#include "include/utilities.h"
 
 //Using the GMRES FE solver set the system as a top hat configuration
 // 2 rows of 5 square boxes
@@ -23,339 +29,29 @@
 //corrected vtk output writer
 
 
+//class structure for Krylov solver
+//Solver
+//Material
+//Physics
+//Mesh
+//Solver - set up solver
+//Mesh - set up mesh - set up grid, stencil, matrix, vectors
+// MaterialDB materials initialise material properties initialise_materials
+// PhysicsState - set up physics - set up initial conditions, boundary conditions, source terms initialise_physics
 
+/*
+for each time step
+    boundary_conditions()
+    linearize_emissive_sources()
 
-constexpr int NX = 160, NY = 64, NZ = 1;
-constexpr int NSTEP = 100000;
-constexpr int N_SAVEINTERVAL=100;
-constexpr double dx = 0.07 / NX;
-constexpr double dy = 0.05 / NY;
-constexpr double dt = 0.01;  // time step size
-const int num_freq_bins = 10; // Number of frequency bins
-const double c = 3e10; // Speed of light in cm/s
-const double a = 7.5646e-15; // Radiation constant in erg/cm^3/K^4
-const double sigma = 5.6704e-5; // Stefan-Boltzmann constant in erg/cm^2/s/K^4
-const double h = 6.626e-27; // Planck's constant in erg.s
-const double k = 1.38064852e-16; // Boltzmann constant in erg/K
-const double TMIN = 293.0; // Minimum temperature - comfortable room temperature
-const double TMAX = 10000.0; // Maximum temperature
-const double TINI = 1000000.0;//11604525.0061598; // Maximum temperature
-const double EINILT2 = 0.000000000001; // Initial temperature for top hot configuration
-const double EINIEQ2 = 0.0000000001; // Initial temperature for equilibrium configuration
-const int    BOUNDTYPE = 2; // Boundary type for the fixed temp is 1 reflected energy is 2, and background is 0, 3 do nothing
-const double temptol=0.1;
-const int maxtiter=10;  //temperature iteration
-const int BUY=1;//upper y 1
-const int BLY=2;//lower y 2
-const int BLX=3;//left x 3
-const int BRX=4;//right x 4
+    solver.solve_radiationgroups()
+    solve_material_heating()
+    update_physics_state()
 
-int boundary(int i, int j) {
-    // Define the boundaries based on the grid indices
-    // This function returns an integer representing the boundary type:
-    int ibound=0;
-    if (i < NX / 5 && (j == NY / 2   || j==0)) {
-        //set up and lower wall to initial condition
-        ibound = BOUNDTYPE; // left box
-    } else if (i <= (NX / 5) && j > NY / 2) {
-        //left hand wall
-        ibound = BOUNDTYPE; // right box
-    } else if (i > ( NX / 5) && i<(2*NX/5) && j ==0) {
-        //lower boundary 2nd box
-        ibound = BOUNDTYPE; // right box
-    } else if (i > (NX / 5) && i < (2 * NX / 5) && j == (NY -1)) {
-        //2nd box upper section
-        ibound = BOUNDTYPE; // middle box
-    }  else if (i >= (2*NX / 5) && i < (3 * NX / 5) && j < (NY/2 )) {
-        //middle box lower section
-        ibound = BOUNDTYPE; // middle box
-    } else if (i >= (2*NX / 5) && i < (3 * NX / 5) && j == (NY-1 )) {
-        //middle box upper section
-        ibound = BOUNDTYPE; // middle box
-    }  else if (i >= (3*NX / 5) && i < (4 * NX / 5) && j == 0) {
-        // box 4 low section
-        ibound = BOUNDTYPE; // middle box
-    }  else if (i >= (3*NX / 5) && i < (4 * NX / 5) && j == (NY-1)) {
-        // box 4 low section
-        ibound = BOUNDTYPE; // middle box
-    }  else if (i >= (4*NX / 5) && i < ( NX ) && j == 0) {
-        // box 4 low section
-        ibound = BOUNDTYPE; // middle box
-    }  else if (i >= (4*NX / 5) && i < ( NX ) && j > (NY/2)) {
-        // box 5 upper section
-        ibound = BOUNDTYPE; // middle box
-    }    
-    else {
-        ibound = 0; // background
-    }
-
-
-    // Return the boundary type
-    // 0 = background, 1 = left box, 2 = right box,
-    return ibound;
-}
-
-
-//used for the reflected energy boundary condition
-//upper y 1  BUY
-//lower y 2   BLY
-//left x 3     BLX
-//right x 4    BRX
-int refboundarytype(int i, int j) {
-    // Define the boundaries based on the grid indices
-    // This function returns an integer representing the boundary type:
-    int ibound=0;
-    if (i < NX / 5 && (j == NY / 2   || j==0)) {
-        //set up and lower wall to initial condition
-        ibound = (j==0)*BLY+(j == NY / 2)*BUY; // left box
-    } else if (i <= (NX / 5) && j > NY / 2) {
-        //left hand wall
-        ibound = BLX; // right box
-    } else if (i > ( NX / 5) && i<(2*NX/5) && j ==0) {
-        //lower boundary 2nd box
-        ibound = (BLY); // right box
-    } else if (i > (NX / 5) && i < (2 * NX / 5) && j == (NY -1)) {
-        //2nd box upper section
-        ibound = BUY; // middle box
-    }  else if (i >= (2*NX / 5) && i < (3 * NX / 5) && j < (NY/2 )) {
-        //middle box lower section
-        ibound = BLY; // middle box
-    } else if (i >= (2*NX / 5) && i < (3 * NX / 5) && j == (NY-1 )) {
-        //middle box upper section
-        ibound = BUY; // middle box
-    }  else if (i >= (3*NX / 5) && i < (4 * NX / 5) && j == 0) {
-        // box 4 low section
-        ibound = BLY; // middle box
-    }  else if (i >= (3*NX / 5) && i < (4 * NX / 5) && j == (NY-1)) {
-        // box 4 low section
-        ibound = BUY; // middle box
-    }  else if (i >= (4*NX / 5) && i < ( NX ) && j==0) {
-        // box 4 low section
-        ibound = BLY; // middle box
-    }  else if (i >= (4*NX / 5) && i < ( NX ) && j > (NY/2)) {
-        // box 5 upper section
-        ibound = BUY; // middle box
-    }    
-    else {
-        ibound = 0; // background
-    }
-
-
-    // Return the boundary type
-    // 0 = background, 1 = left box, 2 = right box,
-    return ibound;
-}
-
-double ereflect(int n, int i, int j)
-{
-    double eref=0.0;
-
-    return eref;
-}
-
-double absorption_coeff(int i, int j) {
-    double siga;
-    double sigaupper=200.0;
-
-    if ((i < NX / 5   && j > NY / 2)   ||  (i > (4*NX / 5)   && j > NY / 2)   ||  (i > (2*NX / 5) &&  i<(3*NX/5)  && j < NY / 2) ) {
-        siga = sigaupper ;
-    } else {
-        siga = 0.5;
-    }
-    
-    return siga;
-}
-
-double specific_heat(int i, int j) {
-    double ca;
-    double caupper=10000.0;
-
-    if ((i < NX / 5   && j > NY / 2)   ||  (i > (4*NX / 5)   && j > NY / 2)   ||  (i > (2*NX / 5) &&  i<(3*NX/5)  && j < NY / 2) ) {
-        ca = caupper ;
-    } else {
-        ca = 1;
-    }
-    
-    return ca;
-}
-
-//same as B_nu but for Planck's law
-// This function computes the spectral radiance of a black body at frequency nu and temperature T
-double planck_emission(double nu, double T) {
-    //const double h = 6.62607015e-27;     // erg·s
-    //const double c = 2.99792458e10;      // cm/s
-    //const double k = 1.380649e-16;       // erg/K
-
-    double numerator = 2.0 * h * std::pow(nu, 3) / (c * c);
-    double exponent = h * nu / (k * T);
-    double denominator = std::exp(exponent) - 1.0;
-
-    return numerator / denominator; // erg·s⁻¹·cm⁻²·Hz⁻¹·sr⁻¹
-}
-
-
-// Function to compute Planck distribution
-double B_nu(double T, double nu) {
-    return (2 * h * pow(nu, 3) / pow(c, 2)) / (exp(h * nu / (k * T)) - 1);
-}
-
-// Function to compute Planck distribution
-double dBnudT(double T, double nu) {
-    //return 0.0;
-    return (exp(h*nu/(k*T))*2 * pow(h,2) * pow(nu, 4) / (k*pow(T,2)*pow(c, 2))) / pow(exp(h * nu / (k * T)) - 1,2);
-}
-
-
-double dBdT(double nu, double T) {
-    const double h = 6.62607015e-27;     // erg·s
-    const double c = 2.99792458e10;      // cm/s
-    const double k = 1.380649e-16;       // erg/K
-
-    double x = h * nu / (k * T);
-    double exp_x = std::exp(x);
-    double factor = (2.0 * h * h * nu * nu * nu * nu) / (c * c * k * T * T);
-    return factor * exp_x / std::pow(exp_x - 1.0, 2);
-}
-
-
-// Define the opacity function
-std::function<double(double)> make_kappa_nu(double kappa0, double nu0, double alpha) {
-    return [=](double nu) {
-        return kappa0 * std::pow(nu / nu0, -alpha);
-    };
-}
-// Function to compute the Rosseland mean opacity for a group of frequencies
-// kappa_nu is a function that returns the opacity at frequency nu
-
-//example usage of function
-//    double T = 6000.0;                  // Temperature in Kelvin
-//    double nu_min = 1e13;              // Minimum frequency in Hz
-//    double nu_max = 1e15;              // Maximum frequency in Hz
-//    double kappa0 = 1.0;               // Reference opacity
-//    double nu0 = 1e14;                 // Reference frequency
-//    double alpha = 1.5;                // Power-law index
-
-    // Create the opacity function
-//    auto kappa_nu = make_kappa_nu(kappa0, nu0, alpha);
-
-    // Compute Rosseland mean opacity for the group
-//    double kappa_R = rosseland_mean_opacity_group(kappa_nu, T, nu_min, nu_max);
+*/
 
 
 
-
-
-
-
-
-double rosseland_mean_opacity_group(
-    std::function<double(double)> kappa_nu, // frequency-dependent opacity
-    double T,
-    double nu_min,
-    double nu_max,
-    int N = 1000 // number of integration points
-) {
-    double dnu = (nu_max - nu_min) / N;
-    double numerator = 0.0;
-    double denominator = 0.0;
-
-    for (int i = 0; i < N; ++i) {
-        double nu = nu_min + i * dnu;
-        double dB_dT = dBdT(nu, T);
-        numerator += (1.0 / kappa_nu(nu)) * dB_dT * dnu;
-        denominator += dB_dT * dnu;
-    }
-
-    return denominator / numerator; // Rosseland mean opacity for the group
-}
-
-double rosseland_mean_opacity_group(
-    double kappa, // frequency-dependent opacity
-    double T,
-    int num_freq_bins = 1000 // number of integration points
-) {
-    double dnu = 1.0e14;
-    double numerator = 0.0;
-    double denominator = 0.0;
-
- 
-
-
-    for (int i = 0; i < num_freq_bins; ++i) {
-        double nu = (i+1)*1e14;
-        double dB_dT = dBdT(nu, T);
-        numerator += (1.0 / kappa) * dB_dT * dnu;
-        denominator += dB_dT * dnu;
-    }
-
-    return denominator / numerator; // Rosseland mn opacity for the group
-}
-
-
-
-
-
-
-double planck_source(double T) {
-    return 4.0 * 5.67e-8 * std::pow(T, 4);  // Simplified gray approx.
-}
-
-double initial_temperature(int i, int j) {
-    double tini=300;
-    if(i<4 &&  j< 3*(NY/2)/4   && j>NY/4) {
-    //if(i<4 &&  j< (NY/2)/2   ) {
-        tini=TINI; // top hot configuration
-    } else {
-        tini=300.0;
-    }
-
-    return tini;
-}
-
-int index(int i, int j, int k) {
-    return i + NX * (j + NY * k);
-}
-
-
-void write_vtk_file(double T[NX][NY][NZ], int timestep) {
-    FILE *vtkFile;
-    char filename[50];
-
-    sprintf(filename, "radiation_output_%d.vtk", timestep);
-    vtkFile = fopen(filename, "w");
-
-    if (!vtkFile) {
-        printf("Error: Could not open file for writing!\n");
-        return;
-    }
-
-    // Write VTK header
-    fprintf(vtkFile, "# vtk DataFile Version 3.0\n");
-    fprintf(vtkFile, "Radiation Transport Simulation\n");
-    fprintf(vtkFile, "ASCII\n");
-    fprintf(vtkFile, "DATASET STRUCTURED_POINTS\n");
-    fprintf(vtkFile, "DIMENSIONS %d %d %d\n", NX, NY, NZ);
-    fprintf(vtkFile, "ORIGIN 0 0 0\n");
-    fprintf(vtkFile, "SPACING 1 1 1\n");
-
-    // Write data section
-    fprintf(vtkFile, "POINT_DATA %d\n", (NX * NY*NZ));
-    fprintf(vtkFile, "SCALARS Temperature float 1\n");
-    fprintf(vtkFile, "LOOKUP_TABLE default\n");
- 
-    // Write temperature values in row-major order
-     for (int j = 0; j < NY; j++)
-    for (int i = 0; i < NX; i++) {
-       
-        for (int k = 0; k < NZ; k++) {
-            fprintf(vtkFile, "%f ", T[i][j][k]);
-        }
-        fprintf(vtkFile, "\n");
-    }
-
-    fclose(vtkFile);
-    printf("VTK file written successfully: %s\n", filename);
-}
 
 int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
@@ -517,6 +213,12 @@ int main(int argc, char** argv) {
 
         double a_nu = 0.7; // Initialize a_nu  should be computed using rosseland mean opacity
         double kappa_nu ;
+        double sumrhs=0.0;
+        double sumcdt=0.0;
+        double sumd=0.0;
+        double summu=0.0;
+        double sumdiag=0.0;
+        double sumemis=0.0;
         for(int nf=0; nf<num_freq_bins; nf++) {
             int n= shuffled[nf] - 1; // Get the shuffled frequency index (0-based)
         for (int k = 0; k < NZ; ++k)
@@ -538,7 +240,7 @@ int main(int argc, char** argv) {
 
             int idx = index(i, j, k);
             double D = 1.0 / (3.0 * mu_a[idx]);
-            double diag = (1.0/ (c*dt)) + 6.0 * D / (dx * dx) + mu_a[idx];
+            double diag = SCALE*((1.0/ (c*dt)) + 6.0 * D / (dx * dy) + mu_a[idx]);
 
             values[0] = diag;
             for (int s = 1; s < 7; ++s) values[s] = -D / (dx * dx);
@@ -547,9 +249,18 @@ int main(int argc, char** argv) {
             // old HYPRE_StructMatrixSetValues(A, ijk, 7, (int[]){0,1,2,3,4,5,6}, values.data());
              HYPRE_StructMatrixSetValues(A, ijk, 7, (HYPRE_Int*)iindex, values.data());
              
-            double emission = mu_a[index(i,j,k)]*dBnudT(Tc[i][j][k],(nf+1)*1.0e14)*kappa_nu*dt*(sum4    -sum3);
+            //double emission = mu_a[index(i,j,k)]*dBnudT(Tc[i][j][k],(nf+1)*1.0e14)*kappa_nu*dt*(sum4    -sum3);
+            //double emission = mu_a[index(i,j,k)] * (Bag[n][i][j][k] - Eag[n][i][j][k]); // classic source term
+            double emission = EMISSCALE*mu_a[index(i,j,k)] * Bag[n][i][j][k]; // if treating B_nu as external source
             //emission=0.0;
             double rhs = (Eag[n][i][j][k]  / (c*dt)) + mu_a[idx]*Bag[n][i][j][k] +emission;
+
+            sumrhs+=rhs;
+            sumemis=sumemis+= emission;
+            sumdiag+=diag;
+            sumcdt+=SCALE*(1.0/ (c*dt));
+            summu+=SCALE*mu_a[idx];
+            sumd+=SCALE*6.0 * D / (dx * dx);
             //HYPRE_StructVectorSetValues(b, ijk, &rhs);
             HYPRE_StructVectorSetValues(b, ijk, rhs);
         }
@@ -632,7 +343,7 @@ int main(int argc, char** argv) {
             //const int BLX=3;//left x 3
             //const int BRX=4;//right x 4
                     double refg,F_in, F_out, D,emission ;
-                    refg=0.7;
+                    refg=0.0;
                     int idx = index(i, j, k);
 
                     for(int n=0; n<num_freq_bins; n++) 
@@ -716,7 +427,12 @@ int main(int argc, char** argv) {
             write_vtk_file(Tc, (step/N_SAVEINTERVAL));
 
         if(step%N_SAVEINTERVAL==0)
+        {
             std::cout << "Step: " << step << ", Total Energy: " << etotn <<  "   " <<etot<< "   " << etotn-etot <<std::endl;
+            std::cout << "Sum of RHS: " << sumrhs/(NX*NY*NZ*num_freq_bins) << ", Sum of Diagonal: " << sumdiag/(NX*NY*NZ*num_freq_bins) << ", Sum of Emission: " << sumemis/(NX*NY*NZ*num_freq_bins) << std::endl;
+            std::cout << "Sum  cdt: " << sumcdt/(NX*NY*NZ*num_freq_bins) << ", Sum mu: " << summu/(NX*NY*NZ*num_freq_bins) << ", Sum D: " << sumd/(NX*NY*NZ*num_freq_bins) << std::endl;
+            std::cout << "Average Temperature: " << etotn/(NX*NY*NZ*num_freq_bins) << std::endl;
+        }
 
 
 
