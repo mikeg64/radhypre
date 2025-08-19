@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include "setup.h"
 
 //same as B_nu but for Planck's law
 // This function computes the spectral radiance of a black body at frequency nu and temperature T
@@ -135,4 +135,30 @@ double rosseland_mean_opacity_group(
 
 double planck_source(double T) {
     return 4.0 * 5.67e-8 * std::pow(T, 4);  // Simplified gray approx.
+}
+
+
+//return the corrected diffusion coefficient
+//use the gradient of the energy
+//the energy
+//the total opacity
+// int ifreq frequency bin number
+double larsendelimiter(double opact, double Eg[num_freq_bins][NX][NY][NZ],double GradEg[num_freq_bins][NX][NY][NZ], int i, int j, int k, int ifreq) {
+    double D = 1.0 / (3.0 * opact); // Corrected diffusion coefficient
+    
+    return D; // A small value to avoid division by zero
+
+
+}
+
+
+//Gradient of the energy
+double gradenergy(double GradEg[num_freq_bins][NX][NY][NZ], double Eg[num_freq_bins][NX][NY][NZ]) {
+    return 1.0e-10; // A small value to avoid division by zero
+}
+
+
+//Gradient of the energy
+double dotprod(double diffcoeff[num_freq_bins][NX][NY][NZ], double Eg[num_freq_bins][NX][NY][NZ],int i, int j, int k, int ifreq) {
+    return 1.0e-10; // A small value to avoid division by zero
 }
