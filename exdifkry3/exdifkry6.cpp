@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
     double Tn[NX][NY][NZ]; // 3D array for temperature at current time step
     double sum1, sum2, sum3,sum4;
     double Eag[num_freq_bins][NX][NY][NZ]; // 4D array for temperature
-    double GradEag[num_freq_bins][NX][NY][NZ]; // gradient of the energy
+    double GradEg[num_freq_bins][NX][NY][NZ][3]={}; // gradient of the energy
     double diffusion_coeff[num_freq_bins][NX][NY][NZ]; // corrected diffusion coefficients
     double ddelr[num_freq_bins][NX][NY][NZ]; // the divergence of the (energy gradient multiplied by the corrected diffusion coefficient)
     double Bag[num_freq_bins][NX][NY][NZ]; // 4D array for temperature
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
             Bag[n][i][j][k] = B_nu(T, (n+1)*1e14); // Example frequency bin
             Eagn[n][i][j][k] = B_nu(1.01*T, (n+1)*1e14); // Example frequency bin
             Bagn[n][i][j][k] = B_nu(1.01*T, (n+1)*1e14); // Example frequency bin
-            GradEag[n][i][j][k]=0; // gradient of the energy
+            GradEg[n][i][j][k][3]=0; // gradient of the energy
             diffusion_coeff[n][i][j][k]=0; // corrected diffusion coefficients
             ddelr[n][i][j][k]=0; // the divergence of the (energy gradient multiplied by the corrected diffusion coefficient)
 
@@ -230,19 +230,19 @@ int main(int argc, char** argv) {
             sum1+=c*mu_a[index(i,j,k)]*dBnudT(Tc[i][j][k],(nf1+1)*1.0e14);
             sum3=c*mu_a[index(i,j,k)]*(Bag[nf1][i][j][k]);
             sum4=sum4+c*mu_a[index(i,j,k)]*Eag[nf1][i][j][k];
-            diffusion_coeff[n][i][j][k]=larsendelimiter(mu_a[idx], Eg[nf1][i][j][k],GradEag[nf1][i][j][k],i,j,k,nf1);
-            ddelr[n][i][j][k]=dotprod(GradEag, diffusion_coeff,i,j,k,nf1);
+            diffusion_coeff[n][i][j][k]=larsendelimiter(mu_a[idx], Eag,GradEg,i,j,k,nf1);
+            ddelr[n][i][j][k]=divergence(diffusion_coeff,GradEg,i,j,k,nf1);
         }
         kappa_nu=1.0/(sum2+sum1);
 
             
             //double D = 1.0 / (3.0 * mu_a[idx]);
-            D=diffusion_coeff[n][i][j][k]
+            
             //double diag = SCALE*((1.0/ (c*dt)) + 6.0 * D / (dx * dy) + mu_a[idx]);
             double diag = SCALE*((1.0/ (c*dt)) + ddelr[n][i][j][k] + mu_a[idx]);
-
+            double D=ddelr[n][i][j][k];
             values[0] = diag;
-            for (int s = 1; s < 7; ++s) values[s] = -D / (dx * dx);
+            for (int s = 1; s < 7; ++s) values[s] = -D ;
 
             int ijk[3] = {i, j, k};
             // old HYPRE_StructMatrixSetValues(A, ijk, 7, (int[]){0,1,2,3,4,5,6}, values.data());

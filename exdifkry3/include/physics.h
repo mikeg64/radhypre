@@ -143,22 +143,71 @@ double planck_source(double T) {
 //the energy
 //the total opacity
 // int ifreq frequency bin number
-double larsendelimiter(double opact, double Eg[num_freq_bins][NX][NY][NZ],double GradEg[num_freq_bins][NX][NY][NZ], int i, int j, int k, int ifreq) {
-    double D = 1.0 / (3.0 * opact); // Corrected diffusion coefficient
+double larsendelimiter(double opact, double Eg[num_freq_bins][NX][NY][NZ],double GradEg[num_freq_bins][NX][NY][NZ][3], int i, int j, int k, int ifreq,int ord=2) {
+    //double D = 1.0 / (3.0 * opact); // Corrected diffusion coefficient
+    double grad_magnitude, egradt=0;
+    //the grad here is a pointer to the gradient vector
     
-    return D; // A small value to avoid division by zero
+    grad_magnitude = std::sqrt(
+        GradEg[ifreq][i][j][k][0] * GradEg[ifreq][i][j][k][0] +
+        GradEg[ifreq][i][j][k][1] * GradEg[ifreq][i][j][k][1] +
+        GradEg[ifreq][i][j][k][2] * GradEg[ifreq][i][j][k][2]
+    );
+    
+    egradt=grad_magnitude/(Eg[ifreq][i][j][k]+1e-20); // avoid div by 0
+
+    if(ord ==2)
+        return(std::sqrt(1.0/(((9.0*opact*opact) + egradt*egradt))));
+    else
+        return(1.0/std::pow((std::pow(3.0*opact,ord) + std::pow(egradt,ord)),1/ord));
 
 
 }
 
 
 //Gradient of the energy
-double gradenergy(double GradEg[num_freq_bins][NX][NY][NZ], double Eg[num_freq_bins][NX][NY][NZ]) {
-    return 1.0e-10; // A small value to avoid division by zero
+double gradenergy(double GradEg[num_freq_bins][NX][NY][NZ][3], double Eg[num_freq_bins][NX][NY][NZ]) {
+    double avg=0; // A small value to avoid division by zero
+    double grad1=0,grad2=0,grad3=0;
+    
+
+    for(int n=0; n<num_freq_bins; n++) {
+        for (int k = 0; k < NZ; ++k)
+        for (int j = 0; j < NY; ++j)
+        for (int i = 0; i < NX; ++i) {
+            grad1=(Eg[n][(i+1<NX?i+1:i)][j][k]-Eg[n][(i>0?i-1:i)][j][k])/(2*dx);
+            grad2=(Eg[n][i][(j+1<NY?j+1:j)][k]-Eg[n][i][(j>0?j-1:j)][k])/(2*dy);
+            grad3=(Eg[n][i][j][(k+1<NZ?k+1:k)]-Eg[n][i][j][(k>0?k-1:k)])/(2*dz);
+            avg+=grad1+grad2+grad3;
+            GradEg[n][i][j][k][0]=grad1;
+            GradEg[n][i][j][k][1]=grad2;
+            GradEg[n][i][j][k][2]=grad3;
+        }
+    }
+    return avg/(3*NX*NY*NZ*num_freq_bins); // A small value to avoid division by zero
 }
 
 
 //Gradient of the energy
-double dotprod(double diffcoeff[num_freq_bins][NX][NY][NZ], double Eg[num_freq_bins][NX][NY][NZ],int i, int j, int k, int ifreq) {
-    return 1.0e-10; // A small value to avoid division by zero
+double divergence(double diffcoeff[num_freq_bins][NX][NY][NZ], double gradeg[num_freq_bins][NX][NY][NZ][3],int i, int j, int k, int ifreq) {
+   
+    double grad=0;
+    //compute the divergence of the (energy gradient multiplied by the corrected diffusion coefficient)
+    for(int di=-1; di<=1; di+=2) {
+        if(i+di>=0 && i+di<NX)
+            grad+= (diffcoeff[ifreq][i+di][j][k]*gradeg[ifreq][i+di][j][k][0] - diffcoeff[ifreq][i][j][k]*gradeg[ifreq][i][j][k][0])/(2.0*dx);        
+    }
+
+    
+    for(int dj=-1; dj<=1; dj+=2) {
+        if(j+dj>=0 && j+dj<NY)
+            grad+= (diffcoeff[ifreq][i][j+dj][k]*gradeg[ifreq][i][j+dj][k][1] - diffcoeff[ifreq][i][j][k]*gradeg[ifreq][i][j][k][1])/(2.0*dy);
+    }
+
+    for(int dk=-1; dk<=1; dk+=2) {
+        if(k+dk>=0 && k+dk<NZ)
+            grad+= (diffcoeff[ifreq][i][j][k+dk]*gradeg[ifreq][i][j][k+dk][2] - diffcoeff[ifreq][i][j][k]*gradeg[ifreq][i][j][k][2])/(2.0*dz);        
+    }
+    
+    return grad; // A small value to avoid division by zero
 }
