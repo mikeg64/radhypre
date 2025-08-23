@@ -29,26 +29,7 @@
 //corrected vtk output writer
 
 
-//class structure for Krylov solver
-//Solver
-//Material
-//Physics
-//Mesh
-//Solver - set up solver
-//Mesh - set up mesh - set up grid, stencil, matrix, vectors
-// MaterialDB materials initialise material properties initialise_materials
-// PhysicsState - set up physics - set up initial conditions, boundary conditions, source terms initialise_physics
 
-/*
-for each time step
-    boundary_conditions()
-    linearize_emissive_sources()
-
-    solver.solve_radiationgroups()
-    solve_material_heating()
-    update_physics_state()
-
-*/
 
 
 
@@ -65,9 +46,17 @@ int main(int argc, char** argv) {
     double Tn[NX][NY][NZ]; // 3D array for temperature at current time step
     double sum1, sum2, sum3,sum4;
     double Eag[num_freq_bins][NX][NY][NZ]; // 4D array for temperature
+    double GradEg[num_freq_bins][NX][NY][NZ][3]={}; // gradient of the energy
+    double diffusion_coeff[num_freq_bins][NX][NY][NZ]; // corrected diffusion coefficients
+    double ddelr[num_freq_bins][NX][NY][NZ]; // the divergence of the (energy gradient multiplied by the corrected diffusion coefficient)
     double Bag[num_freq_bins][NX][NY][NZ]; // 4D array for temperature
     double Eagn[num_freq_bins][NX][NY][NZ]; // new values
     double Bagn[num_freq_bins][NX][NY][NZ]; //new values
+
+    
+
+
+
     double etot, etotn; // total energy at current and next time step
     // Initialize material properties and initial E
     etot = 0.0;
@@ -93,6 +82,10 @@ int main(int argc, char** argv) {
             Bag[n][i][j][k] = B_nu(T, (n+1)*1e14); // Example frequency bin
             Eagn[n][i][j][k] = B_nu(1.01*T, (n+1)*1e14); // Example frequency bin
             Bagn[n][i][j][k] = B_nu(1.01*T, (n+1)*1e14); // Example frequency bin
+            GradEg[n][i][j][k][3]=0; // gradient of the energy
+            diffusion_coeff[n][i][j][k]=0; // corrected diffusion coefficients
+            ddelr[n][i][j][k]=0; // the divergence of the (energy gradient multiplied by the corrected diffusion coefficient)
+
             etot+=Eag[n][i][j][k];
             etotn=etot;
         }
@@ -201,12 +194,14 @@ int main(int argc, char** argv) {
                     sum2+=c*mu_a[index(i,j,k)]*dBnudT(Tc[i][j][k],(n+1)*1.0e14);
                     //sum4+=B_nu(Tc[i][j][k],(n+1)*1.0e14) * mu_a[index(i,j,k)];
                     etot+=Eag[n][i][j][k];
+                    
                     }
             sum2 = 1.0/std::max(sum2, 1e-10); // Prevent division by zero
             source[idx] =0.0; sum3; // Update source term
             tnp1mtn[i][j][k]=sum1/sum2;
         }
-
+        gradenergy(GradEg, Eag); // Compute the gradient of the energy
+        
         //write_vtk_file(Bagn[0], 0);
 
         std::vector<double> values(7);
@@ -225,7 +220,7 @@ int main(int argc, char** argv) {
         for (int j = 0; j < NY; ++j)
         for (int i = 0; i < NX; ++i) {
 
-
+        int idx = index(i, j, k);
         sum1=0;
         sum2=cv[index(i,j,k)];
         sum3=0.0;
@@ -235,15 +230,19 @@ int main(int argc, char** argv) {
             sum1+=c*mu_a[index(i,j,k)]*dBnudT(Tc[i][j][k],(nf1+1)*1.0e14);
             sum3=c*mu_a[index(i,j,k)]*(Bag[nf1][i][j][k]);
             sum4=sum4+c*mu_a[index(i,j,k)]*Eag[nf1][i][j][k];
+            diffusion_coeff[n][i][j][k]=larsendelimiter(mu_a[idx], Eag,GradEg,i,j,k,nf1);
+            ddelr[n][i][j][k]=divergence(diffusion_coeff,GradEg,i,j,k,nf1);
         }
         kappa_nu=1.0/(sum2+sum1);
 
-            int idx = index(i, j, k);
-            double D = 1.0 / (3.0 * mu_a[idx]);
-            double diag = SCALE*((1.0/ (c*dt)) + 6.0 * D / (dx * dy) + mu_a[idx]);
-
+            
+            //double D = 1.0 / (3.0 * mu_a[idx]);
+            
+            //double diag = SCALE*((1.0/ (c*dt)) + 6.0 * D / (dx * dy) + mu_a[idx]);
+            double diag = SCALE*((1.0/ (c*dt)) + ddelr[n][i][j][k] + mu_a[idx]);
+            double D=ddelr[n][i][j][k];
             values[0] = diag;
-            for (int s = 1; s < 7; ++s) values[s] = -D / (dx * dx);
+            for (int s = 1; s < 7; ++s) values[s] = -D ;
 
             int ijk[3] = {i, j, k};
             // old HYPRE_StructMatrixSetValues(A, ijk, 7, (int[]){0,1,2,3,4,5,6}, values.data());
@@ -349,7 +348,8 @@ int main(int argc, char** argv) {
                     for(int n=0; n<num_freq_bins; n++) 
                     {
                         emission= B_nu(Tn[i][j][k], (n+1)*1.0e14); // Example frequency bin
-                        D=1.0 / (3.0 * mu_a[idx]);
+                        //D=1.0 / (3.0 * mu_a[idx]);
+                        D=diffusion_coeff[n][i][j][k];
                        if(refboundarytype(i,j)==BUY)
                        {
                             // Estimate incident flux from interior cell
