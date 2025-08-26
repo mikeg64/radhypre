@@ -8,7 +8,9 @@ constexpr int N_SAVEINTERVAL=50;
 const double dx = 5*0.07 / NX; //these units are in cm  should be 7cm
 const double dy = 5*0.05 / NY;  //should be 5cm
 const double dz = 1.0 / NZ;  //should be 0.5cm
-constexpr double dt = 1.0e-11;//1.0e-11;  // time step size
+double dt = 1.0e-11;//1.0e-11;  // time step size
+const double dtmax = 1.0e-10; // maximum time step size
+const double dtmin = 1.0e-15; // minimum time step size
 const int num_freq_bins = 10; // Number of frequency bins
 const double c = 3e10; // Speed of light in cm/s
 const double a = 7.5646e-15; // Radiation constant in erg/cm^3/K^4
@@ -21,11 +23,13 @@ const double TINI = 100000.0;//11604525.0061598; // Maximum temperature
 const double EINILT2 = 0.000000000001; // Initial temperature for top hot configuration
 const double EINIEQ2 = 0.0000000001; // Initial temperature for equilibrium configuration
 const int    BOUNDTYPE = 1; // Boundary type for the fixed temp is 1 reflected energy i1 2, and background is 0, 3 do nothing
-const double temptol=0.1;
-const int maxtiter=10;  //temperature iteration
+
+
 const int BUY=1;//upper y 1
 const int BLY=2;//lower y 2
 const int BLX=3;//left x 3
 const int BRX=4;//right x 4
 const double SCALE=1.0;// Scaling factor for the diagonal term in the matrix
 const double EMISSCALE=1.0; // Scaling factor for the emission term
+const double temptol=0.1; // Temperature convergence tolerance
+const int maxtiter=10;  // Maximum number of temperature iterations per time step

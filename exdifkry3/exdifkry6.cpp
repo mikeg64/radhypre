@@ -38,6 +38,8 @@ int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
     HYPRE_Init();
 
+    bool dtconverged=false;
+    double t=0.0;
     const int n = NX * NY * NZ;
     std::vector<double> E(n), E_new(n), source(n), cv(n), mu_a(n);
     double Ea[NX][NY][NZ]; // 3D array for temperature
@@ -122,7 +124,7 @@ int main(int argc, char** argv) {
             }
             
             //std::cout << i << "  " << j  << "   " <<  k << "  " <<  index(i,j,k) <<   "  " << Ea[i][j][k] << std::endl;
-        }
+    }
     /*write_vtk_file(Bagn[0], 0);
     write_vtk_file(Bag[0], 1);
     write_vtk_file(Eagn[0], 2);
@@ -163,9 +165,12 @@ int main(int argc, char** argv) {
 
 
     // --- Time loop ---
+    int nconverged=0;  //number of steps for which converged 
     for (int step = 0; step < NSTEP; ++step) {
 
-
+        int niter=0;
+        
+        while(!dtconverged && step<NSTEP) {
         // Shuffle the vector of indices for the frequencies // this reduces numerical noise
         std::vector<int> shuffled = ordered;
         std::shuffle(shuffled.begin(), shuffled.end(), g);
@@ -226,7 +231,7 @@ int main(int argc, char** argv) {
         sum3=0.0;
         sum4=0.0;
         for(int nf1=0; nf1<num_freq_bins; nf1++) {
-           
+        
             sum1+=c*mu_a[index(i,j,k)]*dBnudT(Tc[i][j][k],(nf1+1)*1.0e14);
             sum3=c*mu_a[index(i,j,k)]*(Bag[nf1][i][j][k]);
             sum4=sum4+c*mu_a[index(i,j,k)]*Eag[nf1][i][j][k];
@@ -309,6 +314,8 @@ int main(int argc, char** argv) {
         etotn=0.0;
         
         //compute new temps
+        double delTmax=0.0;
+        double delT;
         for (int k = 0; k < NZ; ++k)
         for (int j = 0; j < NY; ++j)
         for (int i = 0; i < NX; ++i) {
@@ -328,6 +335,8 @@ int main(int argc, char** argv) {
                 }
                 //Tn[i][j][k]=Tc[i][j][k] + ((sum1/sum4)/(1+sum2));
                 Tn[i][j][k]=Tc[i][j][k] + dt*(sum1/(sum2+sum4));
+                delT=fabs(Tn[i][j][k]-Tc[i][j][k]);
+                if(delT>delTmax) delTmax=delT;
                 //apply boundary condition
                 etotn += cv[index(i,j,k)]*Tn[i][j][k]; // Calculate total energy at current time step
 
@@ -393,21 +402,45 @@ int main(int argc, char** argv) {
                             //if(i<4 &&  j< (NY/2)/2   ) {
                            Tn[i][j][k]=TINI; // top hot configuration
                 }
+            }
+                niter++;
 
 
-                Tc[i][j][k] = std::max(Tn[i][j][k], TMIN); // Ensure non-negative temperature
-
-
-                for(int n=0; n<num_freq_bins; n++) 
+                if(delTmax<temptol   || niter>maxtiter)
                 {
-                    Bag[n][i][j][k] = B_nu(Tc[i][j][k], (n+1)*1.0e14); // Update Bag for next iteration
-                    Eag[n][i][j][k] = Eagn[n][i][j][k]; // Update Eag for next iteration
+                    for (int k = 0; k < NZ; ++k)
+                    for (int j = 0; j < NY; ++j)
+                    for (int i = 0; i < NX; ++i) {
+                        dtconverged=true;               
+                        Tc[i][j][k] = std::max(Tn[i][j][k], TMIN); // Ensure non-negative temperature
+                        for(int n=0; n<num_freq_bins; n++) 
+                        {
+                            Bag[n][i][j][k] = B_nu(Tc[i][j][k], (n+1)*1.0e14); // Update Bag for next iteration
+                            Eag[n][i][j][k] = Eagn[n][i][j][k]; // Update Eag for next iteration
+                        }
+                    }
+                    if(nconverged>3 && dt<dtmax)
+                    {
+                        dt=dt*1.3;
+                        nconverged=0;
+                    }
+                    nconverged++;
+
                 }
-        }
+                else
+                {
+                    if(dt>dtmin)
+                        dt=dt*0.7;
+                    nconverged=0;
+
+                }
+        
 
 
         //manage conservation of energy and shift energy
         double deltae;
+        if(dtconverged)
+        {
         deltae=(etotn-etot)/(NX*NY*NZ*num_freq_bins);
                         for(int n=0; n<num_freq_bins; n++) 
                 {
@@ -420,14 +453,22 @@ int main(int argc, char** argv) {
                        
                     }
                 }
+            }
   
         //compute final temperature
         // Write VTK output for visualization
-        if(step%N_SAVEINTERVAL==0)
+        if(dtconverged && step%N_SAVEINTERVAL==0)
             write_vtk_file(Tc, (step/N_SAVEINTERVAL));
 
         if(step%N_SAVEINTERVAL==0)
         {
+            if(dtconverged)
+            {
+                std::cout << "DT CONVERGED " <<"   "  <<niter <<"   "  << dt<<"  "   <<  t  << std::endl;
+                t+=dt;
+            }
+            else
+                std::cout << "DT NOT CONVERGED " << std::endl;  
             std::cout << "Step: " << step << ", Total Energy: " << etotn <<  "   " <<etot<< "   " << etotn-etot <<std::endl;
             std::cout << "Sum of RHS: " << sumrhs/(NX*NY*NZ*num_freq_bins) << ", Sum of Diagonal: " << sumdiag/(NX*NY*NZ*num_freq_bins) << ", Sum of Emission: " << sumemis/(NX*NY*NZ*num_freq_bins) << std::endl;
             std::cout << "Sum  cdt: " << sumcdt/(NX*NY*NZ*num_freq_bins) << ", Sum mu: " << summu/(NX*NY*NZ*num_freq_bins) << ", Sum D: " << sumd/(NX*NY*NZ*num_freq_bins) << std::endl;
@@ -436,7 +477,10 @@ int main(int argc, char** argv) {
 
 
 
-
+    }//dtnotcoverged loop
+        dtconverged=false; 
+        
+        
     }
 
     // Cleanup
