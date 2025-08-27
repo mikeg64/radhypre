@@ -34,7 +34,8 @@ double initial_temperature(int i, int j) {
     double tini=300;
     if(i<4 &&  j< 3*(NY/2)/4   && j>NY/4) {
     //if(i<4 &&  j< (NY/2)/2   ) {
-        tini=TINI; // top hot configuration
+        tini=1.0e8*std::exp(-((i-2)*(i-2)+(j-(NY)/2)*(j-(NY)/2))/4)*TINI; // top hot configuration
+        std::cout << " Initial hot temp " << tini << std::endl;
     } else {
         tini=300.0;
     }

@@ -400,7 +400,7 @@ int main(int argc, char** argv) {
                 }
                 if(i<4 &&  j< 3*(NY/2)/4   && j>NY/4) {
                             //if(i<4 &&  j< (NY/2)/2   ) {
-                           Tn[i][j][k]=TINI; // top hot configuration
+                           Tn[i][j][k]=1.0e8*std::exp(-((i-2)*(i-2)+(j-(NY)/2)*(j-(NY)/2))/4)*TINI; // top hot configuration
                 }
             }
                 niter++;
@@ -419,11 +419,7 @@ int main(int argc, char** argv) {
                             Eag[n][i][j][k] = Eagn[n][i][j][k]; // Update Eag for next iteration
                         }
                     }
-                    if(nconverged>3 && dt<dtmax)
-                    {
-                        dt=dt*1.3;
-                        nconverged=0;
-                    }
+
                     nconverged++;
 
                 }
@@ -434,6 +430,25 @@ int main(int argc, char** argv) {
                     nconverged=0;
 
                 }
+
+                if(nconverged>3)
+                {
+                    if(dt<dtmax)    
+                        dt=dt*1.3;
+                    nconverged=0;
+                }
+
+               
+               if(step%50==0)
+               {
+                if(dtconverged)
+               {
+                    std::cout << "DT CONVERGED " << step <<"   " << nconverged<<"  " <<niter <<"   "  << dt<<"  "   <<  t  << std::endl;
+                    t+=dt;
+                }
+                else
+                    std::cout << "DT NOT CONVERGED " << step << "  "<< nconverged << "   "  <<niter <<"   "  << dt<<"  "   <<  t << std::endl; 
+               }
         
 
 

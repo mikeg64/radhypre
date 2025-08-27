@@ -3,8 +3,8 @@
 #pragma once
 
 constexpr int NX = 160, NY = 64, NZ = 1;
-constexpr int NSTEP = 50000;
-constexpr int N_SAVEINTERVAL=50;
+constexpr int NSTEP = 5000000;
+constexpr int N_SAVEINTERVAL=100;
 const double dx = 5*0.07 / NX; //these units are in cm  should be 7cm
 const double dy = 5*0.05 / NY;  //should be 5cm
 const double dz = 1.0 / NZ;  //should be 0.5cm
@@ -22,7 +22,7 @@ const double TMAX = 10000.0; // Maximum temperature
 const double TINI = 100000.0;//11604525.0061598; // Maximum temperature
 const double EINILT2 = 0.000000000001; // Initial temperature for top hot configuration
 const double EINIEQ2 = 0.0000000001; // Initial temperature for equilibrium configuration
-const int    BOUNDTYPE = 1; // Boundary type for the fixed temp is 1 reflected energy i1 2, and background is 0, 3 do nothing
+const int    BOUNDTYPE = 2; // Boundary type for the fixed temp is 1 reflected energy i1 2, and background is 0, 3 do nothing
 
 
 const int BUY=1;//upper y 1
@@ -31,5 +31,5 @@ const int BLX=3;//left x 3
 const int BRX=4;//right x 4
 const double SCALE=1.0;// Scaling factor for the diagonal term in the matrix
 const double EMISSCALE=1.0; // Scaling factor for the emission term
-const double temptol=0.1; // Temperature convergence tolerance
-const int maxtiter=10;  // Maximum number of temperature iterations per time step
+const double temptol=0.4; // Temperature convergence tolerance
+const int maxtiter=5;  // Maximum number of temperature iterations per time step
