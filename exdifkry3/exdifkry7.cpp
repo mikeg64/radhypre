@@ -1,14 +1,9 @@
 
 #include <mpi.h>
-
-#include "geometry.h"
-
+#include "../include/geometry.h"
 #include "materials.h"
-
 #include "physics.h"
-
 #include "solver.h"
-
 #include "boundary.h"
 
  
@@ -22,9 +17,7 @@ int main(int argc, char *argv[]) {
     // Setup
 
     Mesh mesh = setup_crooked_pipe_geometry();
-
-    MaterialDatabase materials = initialize_materials();
-
+    Materials materials = initialize_materials(mesh);
     PhysicsState state = initialize_physics(mesh, materials);
 
  

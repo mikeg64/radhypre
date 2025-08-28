@@ -6,11 +6,38 @@
 
 // Physical constants
 
-constexpr double STEFAN_BOLTZMANN = 5.670374419e-8; // W·m⁻²·K⁻⁴
 
-constexpr int NUM_GROUPS = 3; // Example: 3 frequency groups
 
-constexpr double DT = 1e-9;   // Time step in seconds
+
+class State {
+
+
+public:
+    State(int nx, int ny);
+    ~State();
+    const std::vector<std::vector<double>>& getTemperatureField() const;
+    void setTemperature(int i, int j, double value);
+
+
+
+
+
+
+private:
+    
+
+    std::vector<std::vector<double>> radiation_flux;   // [group][cell]
+    std::vector<std::vector<double>> sigma_a;          // [group][cell]
+    std::vector<std::vector<double>> source_term;      // [group][cell]
+    std::vector<double> temperature;                   // [cell]
+    std::vector<double> heat_capacity;                 // [cell]
+};
+
+
+
+
+
+
 
 struct PhysicsState {
     std::vector<std::vector> radiation_flux;   // [group][cell]</std::vector
