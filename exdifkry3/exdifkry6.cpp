@@ -259,12 +259,18 @@ int main(int argc, char** argv) {
             //emission=0.0;
             double rhs = (Eag[n][i][j][k]  / (c*dt)) + mu_a[idx]*Bag[n][i][j][k] +emission;
 
-            sumrhs+=rhs;
+            /*sumrhs+=rhs;
             sumemis=sumemis+= emission;
             sumdiag+=diag;
             sumcdt+=SCALE*(1.0/ (c*dt));
             summu+=SCALE*mu_a[idx];
-            sumd+=SCALE*6.0 * D / (dx * dx);
+            sumd+=SCALE*6.0 * D / (dx * dx);*/
+            sumrhs=(fabs(rhs)>sumrhs?fabs(rhs):sumrhs);
+            sumemis=(fabs(emission)>sumemis?fabs(emission):sumemis);
+            sumdiag=(fabs(diag)>sumdiag?fabs(diag):sumdiag);
+            sumcdt=(fabs(SCALE*(1.0/ (c*dt)))>sumcdt?fabs(SCALE*(1.0/ (c*dt))):sumcdt);
+            summu=(fabs(SCALE*mu_a[idx])>summu?fabs(SCALE*mu_a[idx]):summu);
+            sumd=(fabs(SCALE*D/(dx*dx))>sumd?fabs(SCALE*D/(dx*dx)):sumd);
             //HYPRE_StructVectorSetValues(b, ijk, &rhs);
             HYPRE_StructVectorSetValues(b, ijk, rhs);
         }
@@ -400,7 +406,7 @@ int main(int argc, char** argv) {
                 }
                 if(i<4 &&  j< 3*(NY/2)/4   && j>NY/4) {
                             //if(i<4 &&  j< (NY/2)/2   ) {
-                           Tn[i][j][k]=1.0e8*std::exp(-((i-2)*(i-2)+(j-(NY)/2)*(j-(NY)/2))/4)*TINI; // top hot configuration
+                           Tn[i][j][k]=TMIN+1.0e9*std::exp(-((i-2)*(i-2)+(j-(NY)/2)*(j-(NY)/2))/4)*TINI; // top hot configuration
                 }
             }
                 niter++;
