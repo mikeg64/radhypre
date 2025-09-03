@@ -32,7 +32,7 @@ public:
 
 class GMesh {
 public:
-    GMesh() : nx(40), ny(20), dx(1.0), dy(1.0) {
+    GMesh() : nx(NX), ny(NY), dx(DX), dy(DY) {
         num_cells = nx * ny;
         cells.resize(num_cells);
         for (int j = 0; j < ny; ++j) {
@@ -70,10 +70,10 @@ class Mesh {
 
 
 public:
-    Mesh(int nx, int ny);
+    Mesh(int nx, int ny, double dx, double dy);
     ~Mesh();
-    const std::vector<std::vector<double>>& getTemperatureField() const;
-    void setTemperature(int i, int j, double value);
+    //const std::vector<std::vector<double>>& getTemperatureField() const;
+   // void setTemperature(int i, int j, double value);
 
 
 

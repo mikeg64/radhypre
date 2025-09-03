@@ -1,6 +1,8 @@
 #pragma once
-
+#include <map>
 class MaterialProperties {
+    
+public:
         double sigma_a;      // Absorption coefficient
         double heat_capacity; // Heat capacity
     };
@@ -36,7 +38,7 @@ public:
         }
         return 1.0; // Default value if material ID not found
     }
-}
+};
 
 double absorption_coeff(int i, int j) {
     double siga;
@@ -49,7 +51,7 @@ double absorption_coeff(int i, int j) {
     }
     
     return siga;
-}
+};
 
 double specific_heat(int i, int j) {
     double ca;
@@ -62,7 +64,7 @@ double specific_heat(int i, int j) {
     }
     
     return ca;
-}
+};
 
 double initial_temperature(int i, int j) {
     double tini=300;
@@ -74,6 +76,7 @@ double initial_temperature(int i, int j) {
     }
 
     return tini;
-}
+};
 
 Materials initialize_materials(const Mesh& mesh, const Material& materials);
+Materials initialize_materials(const Mesh& mesh);

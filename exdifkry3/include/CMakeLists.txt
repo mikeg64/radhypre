@@ -28,9 +28,9 @@ include_directories(${MPI_INCLUDE_PATH})
 
 # HYPRE installation path (update this if needed)
 
-set(HYPRE_DIR "/home/mike/proj/hypre/src")
+set(HYPRE_DIR "/usr/local/hypre")
 
-include_directories(${HYPRE_DIR})
+include_directories(${HYPRE_DIR}/include)
 
 link_directories(${HYPRE_DIR}/lib)
 
@@ -42,7 +42,7 @@ file(GLOB SRC_FILES
 
     src/*.cpp
 
-    include/*.h
+    src/*.h
 
 )
 

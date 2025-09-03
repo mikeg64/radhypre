@@ -1,3 +1,6 @@
+#include    "../include/material.h"
+#include    "../include/setup.h"
+
 Materials initialize_materials(const Mesh& mesh, const Material& materials)
 {
     Materials mats;

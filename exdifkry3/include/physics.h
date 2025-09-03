@@ -3,6 +3,7 @@
 #include "setup.h"
 
 #include "geometry.h"   //defines mesh
+#include "material.h"   //defines material properties
 
 // Physical constants
 
@@ -50,7 +51,7 @@ struct PhysicsState {
 
 void linearize_emissive_source(PhysicsState& state)
 void solve_material_heating(const Mesh& mesh, PhysicsState& state);
-
+State initialize_physics(const Mesh& mesh, const Material& materials)
 //same as B_nu but for Planck's law
 // This function computes the spectral radiance of a black body at frequency nu and temperature T
 double planck_emission(double nu, double T) {

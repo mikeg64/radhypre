@@ -1,14 +1,48 @@
-#include "include/geometry.h"
+#include "../include/geometry.h"
 
 
- 
+
+
+
+
+
+Mesh::Mesh(int nx, int ny, double dx, double dy)  : nx(nx), ny(ny), dx(dx), dy(dy)
+{
+        num_cells = nx * ny;
+        cells.resize(num_cells);
+        for (int j = 0; j < ny; ++j) {
+            for (int i = 0; i < nx; ++i) {
+                int idx = j * nx + i;
+                cells[idx].x = i * dx;
+                cells[idx].y = j * dy;
+                // Define crooked pipe: horizontal then vertical bend   ?????
+                bool in_pipe = (j >= 8 && j <= 12 && i < 30) || (i >= 28 && i <= 32 && j >= 8 && j <= 18);
+                cells[idx].in_pipe = in_pipe;
+                cells[idx].material_id = in_pipe ? 1 : 0;
+            }
+        }
+        // Define boundaries
+        for (int i = 0; i < num_cells; ++i) {
+            if (cells[i].in_pipe) {
+                if (is_wall_cell(i)) {
+                    BoundaryCondition bc;
+                    bc.cell = i;
+                    bc.type = WALL;
+                    boundaries.push_back(bc);
+                }
+            }
+        }
+}
+
+
+
 
 Mesh setup_crooked_pipe_geometry() {
     Mesh mesh;
-    mesh.nx = 40;
-    mesh.ny = 20;
-    mesh.dx = 1.0;
-    mesh.dy = 1.0;
+    mesh.nx = NX;
+    mesh.ny = NY;
+    mesh.dx = DX;
+    mesh.dy = DY;
     mesh.num_cells = mesh.nx * mesh.ny;
     mesh.cells.resize(mesh.num_cells);
 

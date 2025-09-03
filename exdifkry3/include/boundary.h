@@ -10,7 +10,7 @@
  
 
 double compute_milne_reflected_flux(double incident_flux, double temperature, double sigma_a);
-void apply_milne_boundary_conditions(const Mesh& mesh, PhysicsState& state);
+void apply_milne_boundary_conditions(const Mesh& mesh, State& state);
 
 int boundary(int i, int j) {
     // Define the boundaries based on the grid indices

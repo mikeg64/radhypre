@@ -23,7 +23,7 @@ int setupsolver() {
 
 class RadSolve {
 public:
-    RadSolve(int nx, int ny);
+    RadSolve(int mnx, int mny);
     ~RadSolve();
     const std::vector<std::vector<double>>& getTemperatureField() const;
     void setTemperature(int i, int j, double value);
@@ -37,7 +37,7 @@ public:
 
 
 private:
-    int NX, NY; // Grid dimensions 
+    int nx, ny; // Grid dimensions 
     HYPRE_StructGrid grid;
     HYPRE_StructStencil stencil;
     HYPRE_StructMatrix A;
