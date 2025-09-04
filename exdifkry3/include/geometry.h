@@ -3,7 +3,9 @@
 #include <vector>
 #include "setup.h"
 
- 
+
+
+
 
 class Cell {
     public:
@@ -28,7 +30,32 @@ public:
     BoundaryType type;
 };
 
- 
+class Mesh {
+
+
+public:
+    Mesh(int mnx, int mny, double dx, double dy);
+    ~Mesh();
+    //const std::vector<std::vector<double>>& getTemperatureField() const;
+   // void setTemperature(int i, int j, double value);
+
+
+
+
+
+
+public:
+
+    int nx, ny;
+    double dx, dy;
+    int num_cells;
+    std::vector<Cell> cells;
+    std::vector<BoundaryCondition> boundaries;
+
+};
+
+
+bool is_wall_cell(const Mesh& mesh, int idx); 
 
 class GMesh {
 public:
@@ -48,14 +75,14 @@ public:
         }
         // Define boundaries
         for (int i = 0; i < num_cells; ++i) {
-            if (cells[i].in_pipe) {
-                if (is_wall_cell(i)) {
+           
+                if (!cells[i].in_pipe) {
                     BoundaryCondition bc;
                     bc.cell = i;
                     bc.type = WALL;
                     boundaries.push_back(bc);
                 }
-            }
+            
         }
     }
     int nx, ny;
@@ -66,26 +93,3 @@ public:
 };
 
 
-class Mesh {
-
-
-public:
-    Mesh(int nx, int ny, double dx, double dy);
-    ~Mesh();
-    //const std::vector<std::vector<double>>& getTemperatureField() const;
-   // void setTemperature(int i, int j, double value);
-
-
-
-
-
-
-private:
-
-    int nx, ny;
-    double dx, dy;
-    int num_cells;
-    std::vector<Cell> cells;
-    std::vector<BoundaryCondition> boundaries;
-
-};

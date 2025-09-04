@@ -1,5 +1,8 @@
 #pragma once
+#include "setup.h"
+#include "geometry.h"
 #include <map>
+
 class MaterialProperties {
     
 public:
@@ -38,6 +41,29 @@ public:
         }
         return 1.0; // Default value if material ID not found
     }
+
+    int set_sigma_a(int material_id, double siga)  {
+        int status=0;
+        auto it = material_properties.find(material_id);
+        if (it != material_properties.end() && siga >= 0.0) {
+            it->second.sigma_a=siga;
+            status=1.0;
+        }
+        return status; // Default value if material ID not found
+    }
+
+    int set_heat_capacity(int material_id, double heatcapacity)  {
+        int status=0;
+        auto it = material_properties.find(material_id);
+        if (it != material_properties.end()) {
+            it->second.heat_capacity=heatcapacity;
+            status=1.0;
+        }
+        return status; // Default value if material ID not found
+    }
+
+
+
 };
 
 double absorption_coeff(int i, int j) {
@@ -78,5 +104,5 @@ double initial_temperature(int i, int j) {
     return tini;
 };
 
-Materials initialize_materials(const Mesh& mesh, const Material& materials);
+//Materials initialize_materials(const Mesh& mesh, const Materials& materials);
 Materials initialize_materials(const Mesh& mesh);

@@ -41,11 +41,11 @@ private:
 
 
 struct PhysicsState {
-    std::vector<std::vector> radiation_flux;   // [group][cell]</std::vector
-    std::vector<std::vector> sigma_a;          // [group][cell]</std::vector
-    std::vector<std::vector> source_term;      // [group][cell]</std::vector
-    std::vector temperature;                   // [cell]
-    std::vector heat_capacity;                 // [cell]
+    std::vector<std::vector<double>> radiation_flux;   // [group][cell]</std::vector
+    std::vector<std::vector<double>> sigma_a;          // [group][cell]</std::vector
+    std::vector<std::vector<double>> source_term;      // [group][cell]</std::vector
+    std::vector<double> temperature;                   // [cell]
+    std::vector<double> heat_capacity;                 // [cell]
 };
 
 

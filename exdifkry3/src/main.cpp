@@ -1,10 +1,10 @@
 
 #include <mpi.h>
 #include "../include/geometry.h"
-#include "materials.h"
-#include "physics.h"
-#include "solver.h"
-#include "boundary.h"
+#include "../include/material.h"
+#include "../include/physics.h"
+#include "../include/solver.h"
+#include "../include/boundary.h"
 
  
 

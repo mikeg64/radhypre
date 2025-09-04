@@ -4,9 +4,9 @@
 #include <fstream>
 #include <vector>
 #include <cmath>
-#include "mpi.h"
-#include "HYPRE.h"
-#include "HYPRE_struct_ls.h"
+#include <mpi.h>
+#include <HYPRE.h>
+#include <HYPRE_struct_ls.h>
 #include "ex.h"
 #include "setup.h"
 

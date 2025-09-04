@@ -6,7 +6,7 @@
 
 
 
-Mesh::Mesh(int nx, int ny, double dx, double dy)  : nx(nx), ny(ny), dx(dx), dy(dy)
+Mesh::Mesh(int mnx, int mny, double dx, double dy)  : nx(mnx), ny(mny), dx(dx), dy(dy)
 {
         num_cells = nx * ny;
         cells.resize(num_cells);
@@ -23,13 +23,13 @@ Mesh::Mesh(int nx, int ny, double dx, double dy)  : nx(nx), ny(ny), dx(dx), dy(d
         }
         // Define boundaries
         for (int i = 0; i < num_cells; ++i) {
-            if (cells[i].in_pipe) {
-                if (is_wall_cell(i)) {
+            if (!cells[i].in_pipe) {
+                
                     BoundaryCondition bc;
                     bc.cell = i;
                     bc.type = WALL;
                     boundaries.push_back(bc);
-                }
+                
             }
         }
 }
@@ -38,13 +38,10 @@ Mesh::Mesh(int nx, int ny, double dx, double dy)  : nx(nx), ny(ny), dx(dx), dy(d
 
 
 Mesh setup_crooked_pipe_geometry() {
-    Mesh mesh;
-    mesh.nx = NX;
-    mesh.ny = NY;
-    mesh.dx = DX;
-    mesh.dy = DY;
-    mesh.num_cells = mesh.nx * mesh.ny;
-    mesh.cells.resize(mesh.num_cells);
+    Mesh mesh(NX, NY, DX, DY);
+    
+    //mesh.num_cells = mesh.nx * mesh.ny;
+    //mesh.cells.resize(mesh.num_cells);
 
  
 
