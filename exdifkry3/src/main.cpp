@@ -16,17 +16,17 @@ int main(int argc, char *argv[]) {
 
     // Setup
 
-    Mesh mesh = setup_crooked_pipe_geometry();
+    Mesh mesh = setup_crooked_pipe_geometry();  //defined in geometry.h
     Materials materials = initialize_materials(mesh);
-    PhysicsState state = initialize_physics(mesh, materials);
+    State state = initialize_physics(mesh, materials);  //
 
  
 
-    for (int timestep = 0; timestep < MAX_TIMESTEPS; ++timestep) {
+    for (int timestep = 0; timestep < NSTEP; ++timestep) {
 
         apply_milne_boundary_conditions(mesh, state);
 
-        linearize_emissive_source(state);
+        linearize_emissive_source(mesh,state);  //see physics.h
 
         solve_radiation_groups(mesh, state);
 

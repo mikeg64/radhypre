@@ -4,7 +4,7 @@
 
  
 
-void solve_radiation_groups(const Mesh& mesh, PhysicsState& state) {
+void solve_radiation_groups(const Mesh& mesh, State& state) {
 
     for (int g = 0; g < NUM_GROUPS; ++g) {
 
@@ -60,7 +60,7 @@ void solve_radiation_groups(const Mesh& mesh, PhysicsState& state) {
         HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &x);
     }
 
-    ~RadSolve::RadSolve() {
+    RadSolve::~RadSolve() {
         HYPRE_StructMatrixDestroy(A);
         HYPRE_StructGridDestroy(grid);
         HYPRE_StructStencilDestroy(stencil);

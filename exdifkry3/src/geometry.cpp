@@ -4,7 +4,7 @@
 
 
 
-
+Mesh::~Mesh() {}
 
 Mesh::Mesh(int mnx, int mny, double dx, double dy)  : nx(mnx), ny(mny), dx(dx), dy(dy)
 {

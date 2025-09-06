@@ -13,8 +13,8 @@ const int num_freq_bins = 10; // Number of frequency bins
 const int NUM_GROUPS = num_freq_bins; // Number of frequency bins
 const double c = 3e10; // Speed of light in cm/s
 const double a = 7.5646e-15; // Radiation constant in erg/cm^3/K^4
-const double sigma = 5.6704e-5; // Stefan-Boltzmann constant in erg/cm^2/s/K^4
-const double STEFAN_BOLTZMANN=sigma;
+
+//const double STEFAN_BOLTZMANN=sigma;
 const double h = 6.626e-27; // Planck's constant in erg.s
 const double k = 1.38064852e-16; // Boltzmann constant in erg/K
 const double TMIN = 293.0; // Minimum temperature - comfortable room temperature
@@ -34,13 +34,14 @@ const double EMISSCALE=1.0; // Scaling factor for the emission term
 
 
 //solver
-#define GNX 50  // Grid points in X
-#define GNY 50  // Grid points in Y
-#define TIME_STEPS 10 // Number of time steps
-#define DT 0.01 // Time step size
-#define ALPHA 0.1 // Absorption coefficient
+const int  GNX=50 ; // Grid points in X
+const int  GNY=50;  // Grid points in Y
+const int TIME_STEPS=10; // Number of time steps
+
+const double  ALPHA=0.1; // Absorption coefficient
 
 //physics state
 constexpr double STEFAN_BOLTZMANN = 5.670374419e-8; // W·m⁻²·K⁻⁴
-constexpr int NUM_GROUPS = 3; // Example: 3 frequency groups
-constexpr double DT = 1e-9;   // Time step in seconds
+//constexpr int NUM_GROUPS = 3; // Example: 3 frequency groups
+constexpr double DT = dt;   // Time step in seconds
+const double sigma = STEFAN_BOLTZMANN; // Stefan-Boltzmann constant in erg/cm^2/s/K^4

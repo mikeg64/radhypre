@@ -9,17 +9,14 @@
 #include <HYPRE_struct_ls.h>
 #include "ex.h"
 #include "setup.h"
+#include "geometry.h"   //defines mesh
+#include "material.h"   //defines material properties
+#include "physics.h"
 
 
 
-
-int setupsolver() {
-    // This function sets up the solver parameters and initializes necessary variables
-    // It can be expanded to include more complex setup logic if needed
-    // For now, it simply returns true to indicate successful setup
-    return 0;
-}
-
+void solve_radiation_groups(const Mesh& mesh, State& state);
+int setupsolver() ;
 
 class RadSolve {
 public:

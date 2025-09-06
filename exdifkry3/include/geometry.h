@@ -54,42 +54,9 @@ public:
 
 };
 
-
+Mesh setup_crooked_pipe_geometry();
 bool is_wall_cell(const Mesh& mesh, int idx); 
 
-class GMesh {
-public:
-    GMesh() : nx(NX), ny(NY), dx(DX), dy(DY) {
-        num_cells = nx * ny;
-        cells.resize(num_cells);
-        for (int j = 0; j < ny; ++j) {
-            for (int i = 0; i < nx; ++i) {
-                int idx = j * nx + i;
-                cells[idx].x = i * dx;
-                cells[idx].y = j * dy;
-                // Define crooked pipe: horizontal then vertical bend   ?????
-                bool in_pipe = (j >= 8 && j <= 12 && i < 30) || (i >= 28 && i <= 32 && j >= 8 && j <= 18);
-                cells[idx].in_pipe = in_pipe;
-                cells[idx].material_id = in_pipe ? 1 : 0;
-            }
-        }
-        // Define boundaries
-        for (int i = 0; i < num_cells; ++i) {
-           
-                if (!cells[i].in_pipe) {
-                    BoundaryCondition bc;
-                    bc.cell = i;
-                    bc.type = WALL;
-                    boundaries.push_back(bc);
-                }
-            
-        }
-    }
-    int nx, ny;
-    double dx, dy;
-    int num_cells;
-    std::vector<Cell> cells;
-    std::vector<BoundaryCondition> boundaries;
-};
+
 
 
