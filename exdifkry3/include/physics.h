@@ -21,9 +21,23 @@ class State {
 
 public:
     State(int nx, int ny);
+    State(State &other) ;
+
     ~State();
     std::vector<double>& getTemperatureField();
     void setTemperature(int i, int j, double value);
+    void copy(const State& other);
+    int getNumCells() const;
+    int getNumGroups() const;
+    double getRadiationFlux(int group, int cell) const; 
+    void setRadiationFlux(int group, int cell, double value);
+    double getSigmaA(int group, int cell) const;    
+    void setSigmaA(int group, int cell, double value);
+    double getSourceTerm(int group, int cell) const;
+    void setSourceTerm(int group, int cell, double value);
+    double getHeatCapacity(int cell) const;
+    void setHeatCapacity(int cell, double value);
+
 
 
 
@@ -64,6 +78,7 @@ State initialize_physics(Mesh& mesh,  Materials& materials);
 
 
 void apply_milne_boundary_conditions(Mesh& mesh, State& state);
+void apply_reflect_boundary_conditions(Mesh& mesh, State& state);
 
 double planck_emission(double nu, double T);
 

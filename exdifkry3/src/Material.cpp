@@ -7,19 +7,23 @@
 Materials initialize_materials(const Mesh& mesh)
 {
     Materials mats;
+    int material_id;
     int num_cells = mesh.num_cells;
     //mats.sigma_a.resize(num_cells);
     //mats.heat_capacity.resize(num_cells);
 
     for (int i = 0; i < num_cells; ++i) {
-        int material_id = mesh.cells[i].material_id;
+        material_id = mesh.cells[i].material_id;
+    }
+    for (int i = 0; i <= 1; ++i) {
+        material_id = i;
         // Example: Assign properties based on material_id
         if (material_id == 1) { // Material 1
-            mats.set_sigma_a(i, 100.0); // Example value
-            mats.set_heat_capacity(i,  10.0); // Example value
-        } else { // Default material
             mats.set_sigma_a(i, 10.0); // Example value
             mats.set_heat_capacity(i,  1.0); // Example value
+        } else { // Default material
+            mats.set_sigma_a(i, 1000.0); // Example value
+            mats.set_heat_capacity(i,  10000.0); // Example value
         }
     }
 

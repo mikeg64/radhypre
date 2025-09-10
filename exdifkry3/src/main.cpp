@@ -18,8 +18,11 @@ int main(int argc, char *argv[]) {
 
     Mesh mesh = setup_crooked_pipe_geometry();  //defined in geometry.h
     Materials materials = initialize_materials(mesh);
-    State state = initialize_physics(mesh, materials);  //
 
+    State state = initialize_physics(mesh, materials);  //stores the initial step
+    State state1(state);
+    State state2(state);
+    State statef(state); //1st half step update
  
 
     for (int timestep = 0; timestep < NSTEP; ++timestep) {

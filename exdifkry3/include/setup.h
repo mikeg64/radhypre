@@ -2,7 +2,12 @@
 
 #pragma once
 
-constexpr int NX = 160, NY = 64, NZ = 1;
+
+
+// Simulation parameters
+//nx is a factor of 7
+//ny is a factor of 5
+constexpr int NX = 140, NY = 60, NZ = 1;
 constexpr int NSTEP = 50000;
 constexpr int N_SAVEINTERVAL=50;
 const double DX = 5*0.07 / NX; //these units are in cm  should be 7cm

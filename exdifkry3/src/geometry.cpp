@@ -16,9 +16,14 @@ Mesh::Mesh(int mnx, int mny, double dx, double dy)  : nx(mnx), ny(mny), dx(dx), 
                 cells[idx].x = i * dx;
                 cells[idx].y = j * dy;
                 // Define crooked pipe: horizontal then vertical bend   ?????
-                bool in_pipe = (j >= 8 && j <= 12 && i < 30) || (i >= 28 && i <= 32 && j >= 8 && j <= 18);
+                //bool in_pipe = (j >= 8 && j <= 12 && i < 30) || (i >= 28 && i <= 32 && j >= 8 && j <= 18);
+                bool in_pipe = (j >= (ny/5) && j <= (2*ny/5) && i < (2*nx/7)) 
+                               || (i >= (2*nx/7) && i <= (3*nx/7) && j >= (ny/5) && j <= (4*ny/5))
+                               || (j >= (3*ny/5) && j <= (4*ny/5) && i >= (3*nx/7) && i <= (4*nx/7)) 
+                               || (i >= (4*nx/7) && i <= (5*nx/7) && j >= (ny/5) && j <= (4*ny/5))
+                               || (j >= (ny/5) && j <= (2*ny/5) && i >= (5*nx/7) && i <= (nx));
                 cells[idx].in_pipe = in_pipe;
-                cells[idx].material_id = in_pipe ? 1 : 0;
+                cells[idx].material_id = (in_pipe ? 1 : 0);
             }
         }
         // Define boundaries
@@ -52,7 +57,14 @@ Mesh setup_crooked_pipe_geometry() {
             mesh.cells[idx].y = j * mesh.dy;
  
             // Define crooked pipe: horizontal then vertical bend
-            bool in_pipe = (j >= 8 && j <= 12 && i < 30) || (i >= 28 && i <= 32 && j >= 8 && j <= 18);
+           // bool in_pipe = (j >= 8 && j <= 12 && i < 30) || (i >= 28 && i <= 32 && j >= 8 && j <= 18);
+            bool in_pipe = (j >= (NY/5) && j <= (2*NY/5) && i < (2*NX/7)) 
+                               || (i >= (2*NX/7) && i <= (3*NX/7) && j >= (NY/5) && j <= (4*NY/5))
+                               || (j >= (3*NY/5) && j <= (4*NY/5) && i >= (3*NX/7) && i <= (4*NX/7)) 
+                               || (i >= (4*NX/7) && i <= (5*NX/7) && j >= (NY/5) && j <= (4*NY/5))
+                               || (j >= (NY/5) && j <= (2*NY/5) && i >= (5*NX/7) && i <= (NX));
+
+
             mesh.cells[idx].in_pipe = in_pipe;
             mesh.cells[idx].material_id = in_pipe ? 1 : 0;
         }
@@ -69,6 +81,14 @@ Mesh setup_crooked_pipe_geometry() {
                 BoundaryCondition bc;
                 bc.cell = i;
                 bc.type = WALL;
+                mesh.boundaries.push_back(bc);
+            }
+        }
+        else {
+            if(mesh.cells[i].x<(2*mesh.dx) && mesh.cells[i].y<(2*mesh.dy*mesh.ny/5)   && mesh.cells[i].y> (mesh.dy*mesh.ny/5)  ) { // Top row
+                BoundaryCondition bc;
+                bc.cell = i;
+                bc.type = OUTLET;
                 mesh.boundaries.push_back(bc);
             }
         }

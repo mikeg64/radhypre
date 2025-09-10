@@ -22,6 +22,14 @@ enum BoundaryType {
     OUTLET
 };
 
+enum WallType {
+    WUY,
+    WLY,
+    WUX,
+    WLX
+};
+
+
  
 
 class BoundaryCondition {

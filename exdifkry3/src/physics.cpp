@@ -53,7 +53,7 @@ State initialize_physics(Mesh& mesh,  Materials& materials) {
     for (int i = 0; i < num_cells; ++i) {
         int mat_id = mesh.cells[i].material_id;
         // Set initial temperature (e.g., 1 keV blackbody)
-        state.temperature[i] = TINI; //1.16e7; // Kelvin
+        state.temperature[i] = TMIN; //1.16e7; // Kelvin
         // Set heat capacity from material database
         state.heat_capacity[i] = materials.get_heat_capacity(mat_id);
         // Set absorption coefficients per group
@@ -62,9 +62,10 @@ State initialize_physics(Mesh& mesh,  Materials& materials) {
         }
 
         // Initialize source term using blackbody emission
-        double T4 = std::pow(state.temperature[i], 4);
+        //double T4 = std::pow(state.temperature[i], 4);
         for (int g = 0; g < NUM_GROUPS; ++g) {
-            state.source_term[g][i] = state.sigma_a[g][i] * STEFAN_BOLTZMANN * T4;
+            //state.source_term[g][i] = state.sigma_a[g][i] * STEFAN_BOLTZMANN * T4;
+            state.source_term[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ; 
         }
     }
 
@@ -77,7 +78,7 @@ void apply_milne_boundary_conditions(Mesh& mesh, State& state)
 {
 
     // Apply Milne boundary conditions at the domain boundaries
-    /*for (const auto& bc : mesh.boundaries) {
+    for (const auto& bc : mesh.boundaries) {
         int cell = bc.cell;
         if (bc.type == INLET) {
             // For inlet, set radiation flux to a fixed value (e.g., blackbody at TINI)
@@ -99,10 +100,58 @@ void apply_milne_boundary_conditions(Mesh& mesh, State& state)
                 state.radiation_flux[g][cell] = 0.0; // Absorbing wall
             }
         }
-    }*/
+    }
 }
 
-    State::State(int nx, int ny){}
+
+void apply_reflect_boundary_conditions(Mesh& mesh, State& state)
+{
+
+    // Apply Milne boundary conditions at the domain boundaries
+    for (const auto& bc : mesh.boundaries) {
+        int cell = bc.cell;
+        if (bc.type == INLET) {
+            // For inlet, set radiation flux to a fixed value (e.g., blackbody at TINI)
+            for (int g = 0; g < NUM_GROUPS; ++g) {
+                state.radiation_flux[g][cell] = STEFAN_BOLTZMANN * std::pow(TINI, 4) / NUM_GROUPS; // Simplified
+            }
+        } else if (bc.type == OUTLET) {
+            // For outlet, apply zero-gradient condition
+            for (int g = 0; g < NUM_GROUPS; ++g) {
+                // Assuming a simple 1D layout for illustration
+                int neighbor = cell + 1; // This should be determined based on mesh connectivity
+                if (neighbor < mesh.num_cells) {
+                    state.radiation_flux[g][cell] = state.radiation_flux[g][neighbor];
+                }
+            }
+        } else if (bc.type == WALL) {
+            // For wall, set radiation flux to zero or reflective condition
+            for (int g = 0; g < NUM_GROUPS; ++g) {
+                state.radiation_flux[g][cell] = 0.0; // Absorbing wall
+            }
+        }
+    }
+}
+
+    State::State(int nx, int ny)
+    {
+        int num_cells = nx * ny;
+        // Resize group-dependent vectors
+        radiation_flux.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
+        sigma_a.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
+        source_term.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
+
+        // Resize temperature and heat capacity
+        temperature.resize(num_cells, 0.0);
+        heat_capacity.resize(num_cells, 0.0);
+    }
+
+    State::State(State &other) : radiation_flux(other.radiation_flux), sigma_a(other.sigma_a), source_term(other.source_term), temperature(other.temperature), heat_capacity(other.heat_capacity) 
+    {
+
+    }
+
+
     State::~State(){}
     std::vector<double>& State::getTemperatureField()  {
         
@@ -110,6 +159,72 @@ void apply_milne_boundary_conditions(Mesh& mesh, State& state)
     }
 
     void State::setTemperature(int i, int j, double value){}
+
+
+    void State::copy(const State& other)
+    {
+        temperature = other.temperature;
+        heat_capacity = other.heat_capacity;
+        radiation_flux = other.radiation_flux;
+        sigma_a = other.sigma_a;
+        source_term = other.source_term;
+    }
+
+    int State::getNumCells() const
+    {
+        return temperature.size();
+    }
+
+    int State::getNumGroups() const
+    {
+        return radiation_flux.size();
+    }
+
+    double State::getRadiationFlux(int group, int cell) const
+    {
+        return radiation_flux[group][cell];
+    }
+
+
+    void State::setRadiationFlux(int group, int cell, double value)
+    {
+        radiation_flux[group][cell] = value;
+    }
+
+    double State::getSigmaA(int group, int cell) const
+    {
+        return sigma_a[group][cell];
+    }
+
+    void State::setSigmaA(int group, int cell, double value)
+    {
+        sigma_a[group][cell] = value;
+    }
+
+    double State::getSourceTerm(int group, int cell) const
+    {
+        return source_term[group][cell];
+    }
+
+    void State::setSourceTerm(int group, int cell, double value)
+    {
+        source_term[group][cell] = value;
+    }
+
+    double State::getHeatCapacity(int cell) const
+    {
+        return heat_capacity[cell];
+    }
+
+
+    void State::setHeatCapacity(int cell, double value)
+    {
+        heat_capacity[cell] = value;
+    }
+
+
+
+
 
 
 //same as B_nu but for Planck's law
