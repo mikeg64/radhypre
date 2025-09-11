@@ -28,6 +28,7 @@ set(SOURCES
     src/Material.cpp
     src/physics.cpp
     src/solver.cpp
+    src/setup.cpp
 )
 
 # Create executable

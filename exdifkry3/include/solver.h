@@ -22,11 +22,11 @@ class RadSolve {
 public:
     RadSolve(int mnx, int mny);
     ~RadSolve();
-    const std::vector<std::vector<double>>& getTemperatureField() const;
-    void setTemperature(int i, int j, double value);
-    void readMesh(const std::string& filename);
-    void setupGrid();
-    void solveRadiationTransport();
+    //const std::vector<std::vector<double>>& getTemperatureField() const;
+    //void setTemperature(int i, int j, double value);
+    //void readMesh(const std::string& filename);
+    //void setupGrid();
+    void solveRadiationTransport(const Mesh& mesh, State& state, double t);
 
 
 

@@ -145,11 +145,11 @@ double planck_source(double T) ;
 //the energy
 //the total opacity
 // int ifreq frequency bin number
-double larsendelimiter(double opact, double Eg[num_freq_bins][NX][NY][NZ],double GradEg[num_freq_bins][NX][NY][NZ][3], int i, int j, int k, int ifreq,int ord=2) ;
+double larsendelimiter(double opact, double Eg[NUM_FREQ_BINS][NX][NY][NZ],double GradEg[NUM_FREQ_BINS][NX][NY][NZ][3], int i, int j, int k, int ifreq,int ord=2) ;
 
 //Gradient of the energy
-double gradenergy(double GradEg[num_freq_bins][NX][NY][NZ][3], double Eg[num_freq_bins][NX][NY][NZ]);
+double gradenergy(double GradEg[NUM_FREQ_BINS][NX][NY][NZ][3], double Eg[NUM_FREQ_BINS][NX][NY][NZ]);
 
 
 //Gradient of the energy
-double divergence(double diffcoeff[num_freq_bins][NX][NY][NZ], double gradeg[num_freq_bins][NX][NY][NZ][3],int i, int j, int k, int ifreq) ;
+double divergence(double diffcoeff[NUM_FREQ_BINS][NX][NY][NZ], double gradeg[NUM_FREQ_BINS][NX][NY][NZ][3],int i, int j, int k, int ifreq) ;

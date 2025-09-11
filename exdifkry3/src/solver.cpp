@@ -4,6 +4,14 @@
 
  
 
+
+int setupsolver() {
+    // This function sets up the solver parameters and initializes necessary variables
+    // It can be expanded to include more complex setup logic if needed
+    // For now, it simply returns true to indicate successful setup
+    return 0;
+}
+
 void solve_radiation_groups(const Mesh& mesh, State& state) {
 
     for (int g = 0; g < NUM_GROUPS; ++g) {
@@ -51,7 +59,8 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
 }
 
 
-    RadSolve::RadSolve(int mnx, int mny) : nx(mnx), ny(mny), T(mnx, std::vector<double>(mny, 300.0)) {
+    //RadSolve::RadSolve(int mnx, int mny) : nx(mnx), ny(mny), T(mnx, std::vector<double>(mny, 300.0)) {
+    RadSolve::RadSolve(int mnx, int mny) : nx(mnx), ny(mny) {
         MPI_Init(NULL, NULL);
         HYPRE_StructGridCreate(MPI_COMM_WORLD, 2, &grid);
         HYPRE_StructStencilCreate(2, 5, &stencil);
@@ -70,22 +79,22 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
     }
 
     // Method to return the temperature field
-    const std::vector<std::vector<double>>& RadSolve::getTemperatureField() const {
+    /*const std::vector<std::vector<double>>& RadSolve::getTemperatureField() const {
         return T;
-    }
+    }*/
 
     // Example function to modify the temperature field
-    void RadSolve::setTemperature(int i, int j, double value) {
+    /*void RadSolve::setTemperature(int i, int j, double value) {
         if (i >= 0 && i < nx && j >= 0 && j < ny) {
             T[i][j] = value;
         } else {
             std::cerr << "Error: Index out of bounds!" << std::endl;
         }
-    }
+    }*/
 
 
 
-    void RadSolve::readMesh(const std::string& filename) {
+    /*void RadSolve::readMesh(const std::string& filename) {
         std::ifstream meshFile(filename);
         std::string line;
         while (std::getline(meshFile, line)) {
@@ -100,9 +109,9 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
             }
         }
         meshFile.close();
-    }
+    }*/
 
-    void RadSolve::setupGrid() {
+    /*void RadSolve::setupGrid() {
         int ilower[2] = {0, 0};
         int iupper[2] = {nx-1, ny-1};
         HYPRE_StructGridSetExtents(grid, ilower, iupper);
@@ -120,15 +129,15 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
 
         //HYPRE_StructMatrixSetStencil(A, stencil);
         HYPRE_StructMatrixInitialize(A);
-    }
+    }*/
 
-    void RadSolve::solveRadiationTransport() {
+    void RadSolve::solveRadiationTransport(const Mesh& mesh, State& state, double t) {
         //double T[NX][NY];
-        for (int i = 0; i < nx; i++)
+        /*for (int i = 0; i < nx; i++)
             for (int j = 0; j < ny; j++)
-                T[i][j] = 300.0;  // Initial temperature field
+                T[i][j] = 300.0;  // Initial temperature field*/
 
-        for (int t = 0; t < TIME_STEPS; t++) {
+        /*for (int t = 0; t < TIME_STEPS; t++) {*/
             std::cout << "Solving time step " << t << std::endl;
 
             for (int i = 0; i < nx; i++) {
@@ -157,5 +166,5 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
             }
 
             HYPRE_StructPCGDestroy(solver);
-        }
+        /*}*/
     }

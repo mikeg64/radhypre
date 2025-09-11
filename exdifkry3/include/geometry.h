@@ -36,6 +36,7 @@ class BoundaryCondition {
 public:
     int cell;
     BoundaryType type;
+    WallType wall_type;
 };
 
 class Mesh {
