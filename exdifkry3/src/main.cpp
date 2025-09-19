@@ -28,19 +28,19 @@ int main(int argc, char *argv[]) {
     
 
     //intialize solver for each state
-    RadSolve solver(mesh.nx, mesh.ny);
+    RadSolve solver(mesh.nx, mesh.ny,pars);
  
     double temptol=1e-3; //temperature tolerance for convergence
     double maxtempdif=0.0;
     double time=0.0;
     double dt=1e-10; //initial time step
     // Main time-stepping loop
-    for (int timestep = 0; timestep < NSTEP; ++timestep) {
+    for (int timestep = 0; timestep < pars.nstep; ++timestep) {
         state1.copy(state);
         updatestate(pars, mesh, state, state1, state2, statef, solver);
         
 
-        time+=dt;
+        pars.time+=dt;
         std::cout<<"Completed timestep "<<timestep<<" time "<<time<<" dt "<<dt<< std::endl;
         //maxtempdif<0.5*temptol then new dt=2*dt update state to state2
 
@@ -59,26 +59,32 @@ int main(int argc, char *argv[]) {
 
 int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &state2, State &statef, RadSolve &solver)
 {
-        //take a full step dt
-        apply_milne_boundary_conditions(mesh, state);
-        linearize_emissive_source(mesh,state);  //see physics.h
-        solve_radiation_groups(mesh, state);
-        solver.solveRadiationTransport(mesh, state, pars.time);
+    int status=0;    
+    
+    //take a full step dt
+        
+        
+        //solve_radiation_groups(mesh, state);
+        solver.solveRadiationTransport(mesh, state, pars, pars.time);
+        //linearize_emissive_source(mesh,state,pars);  //see physics.h
         solve_material_heating(mesh, state);
+        apply_milne_boundary_conditions(mesh, state);
 
         //Take 2 half steps dt=dt/2
-        apply_milne_boundary_conditions(mesh, state1);
-        linearize_emissive_source(mesh,state1);  //see physics.h
-        solver.solveRadiationTransport(mesh, state, pars.time);
-        solve_radiation_groups(mesh, state1);
+
+        solver.solveRadiationTransport(mesh, state, pars, pars.time);
+        //solve_radiation_groups(mesh, state1);
         solve_material_heating(mesh, state1);
+        apply_milne_boundary_conditions(mesh, state1);
+        //linearize_emissive_source(mesh,state1,pars);  //see physics.h
 
         state2.copy(state1);
-        apply_milne_boundary_conditions(mesh, state2);
-        linearize_emissive_source(mesh,state2);  //see physics.h
-        solver.solveRadiationTransport(mesh, state, pars.time);
-        solve_radiation_groups(mesh, state2);
+        solver.solveRadiationTransport(mesh, state, pars, pars.time);
+        //solve_radiation_groups(mesh, state2);
         solve_material_heating(mesh, state2);
+        apply_milne_boundary_conditions(mesh, state2);
+        //linearize_emissive_source(mesh,state2,pars);  //see physics.h
+
 
         //put this in a routine called convergence check and update dt
         //compare state and state2
@@ -90,4 +96,6 @@ int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &stat
             statef.temperature[i]=0.5*(state.temperature[i]+state2.temperature[i]);
         }
         //do some trickery to reduce the timestep
+
+        return status;
 }

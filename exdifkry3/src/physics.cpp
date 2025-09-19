@@ -2,7 +2,7 @@
 
  
 
-void linearize_emissive_source(const Mesh& mesh, State& state) {
+void linearize_emissive_source(const Mesh& mesh, State& state, Pars &pars) {
     for (int i = 0; i < mesh.num_cells; ++i) {
         double T = state.temperature[i];
         double T4 = std::pow(T, 4);
@@ -45,6 +45,7 @@ State initialize_physics(Mesh& mesh,  Materials& materials) {
     state.radiation_flux.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
     state.sigma_a.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
     state.source_term.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
+    state.Bag.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
 
     // Resize temperature and heat capacity
     state.temperature.resize(num_cells, 0.0);
@@ -63,9 +64,13 @@ State initialize_physics(Mesh& mesh,  Materials& materials) {
 
         // Initialize source term using blackbody emission
         //double T4 = std::pow(state.temperature[i], 4);
+        state.etot=0.0;
         for (int g = 0; g < NUM_GROUPS; ++g) {
             //state.source_term[g][i] = state.sigma_a[g][i] * STEFAN_BOLTZMANN * T4;
             state.source_term[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ; 
+            state.Bag[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ; 
+            state.radiation_flux[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ; 
+            state.etot+=state.radiation_flux[g][i];
         }
     }
 
@@ -138,12 +143,16 @@ void apply_reflect_boundary_conditions(Mesh& mesh, State& state)
         int num_cells = nx * ny;
         // Resize group-dependent vectors
         radiation_flux.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
+        radiation_fluxn.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
         sigma_a.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
         source_term.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
+        Bag.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
 
         // Resize temperature and heat capacity
         temperature.resize(num_cells, 0.0);
         heat_capacity.resize(num_cells, 0.0);
+
+        etot=0.0;
     }
 
     State::State(State &other) : radiation_flux(other.radiation_flux), sigma_a(other.sigma_a), source_term(other.source_term), temperature(other.temperature), heat_capacity(other.heat_capacity) 
@@ -166,6 +175,7 @@ void apply_reflect_boundary_conditions(Mesh& mesh, State& state)
         temperature = other.temperature;
         heat_capacity = other.heat_capacity;
         radiation_flux = other.radiation_flux;
+        radiation_fluxn = other.radiation_fluxn;
         sigma_a = other.sigma_a;
         source_term = other.source_term;
     }
@@ -220,6 +230,12 @@ void apply_reflect_boundary_conditions(Mesh& mesh, State& state)
     void State::setHeatCapacity(int cell, double value)
     {
         heat_capacity[cell] = value;
+    }
+
+    // Function to compute Planck distribution
+    double State::dBnudT(double T, double nu)
+    {
+        return (exp(h*nu/(k*T))*2 * pow(h,2) * pow(nu, 4) / (k*pow(T,2)*pow(c, 2))) / pow(exp(h * nu / (k * T)) - 1,2);
     }
 
 

@@ -21,7 +21,7 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
         HYPRE_StructGrid grid;
         HYPRE_StructMatrix A;
         HYPRE_StructVector b, x;
-        HYPRE_StructSolver solver;
+        HYPRE_StructSolver krylov_solver;
 
  
 
@@ -39,10 +39,10 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
 
         // Solve
 
-        HYPRE_StructGMRESCreate(MPI_COMM_WORLD, &solver);
-        HYPRE_StructGMRESSetTol(solver, 1e-6);
-        HYPRE_StructGMRESSetup(solver, A, b, x);
-        HYPRE_StructGMRESSolve(solver, A, b, x);
+        HYPRE_StructGMRESCreate(MPI_COMM_WORLD, &krylov_solver);
+        HYPRE_StructGMRESSetTol(krylov_solver, 1e-6);
+        HYPRE_StructGMRESSetup(krylov_solver, A, b, x);
+        HYPRE_StructGMRESSolve(krylov_solver, A, b, x);
 
  
 
@@ -52,7 +52,7 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
 
  
 
-        HYPRE_StructGMRESDestroy(solver);
+        HYPRE_StructGMRESDestroy(krylov_solver);
 
     }
 
@@ -60,14 +60,86 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
 
 
     //RadSolve::RadSolve(int mnx, int mny) : nx(mnx), ny(mny), T(mnx, std::vector<double>(mny, 300.0)) {
-    RadSolve::RadSolve(int mnx, int mny) : nx(mnx), ny(mny) {
+    RadSolve::RadSolve(int mnx, int mny, Pars &pars) : nx(mnx), ny(mny) {
         MPI_Init(NULL, NULL);
-        HYPRE_StructGridCreate(MPI_COMM_WORLD, 2, &grid);
+
+        int iindex[7]={0,1,2,3,4,5,6};
+        int ilower[3] = {0, 0, 0};
+        int iupper[3] = {pars.nx - 1, pars.ny - 1, pars.nz - 1};
+        int offsets[7][3] = {{0,0,0},{-1,0,0},{1,0,0},{0,-1,0},{0,1,0},{0,0,-1},{0,0,1}};
+        // --- Grid definition ---
+        HYPRE_StructGridCreate(MPI_COMM_WORLD, 3, &grid);
+        HYPRE_StructGridSetExtents(grid, ilower, iupper);
+        HYPRE_StructGridAssemble(grid);
+
+        // --- Stencil definition ---
+        HYPRE_StructStencilCreate(3, 7, &stencil);
+
+        for (int s = 0; s < 7; ++s)
+            HYPRE_StructStencilSetElement(stencil, s, offsets[s]);
+
+        // --- Create and initialize matrix and vectors ---
+        HYPRE_StructMatrixCreate(MPI_COMM_WORLD, grid, stencil, &A);
+        HYPRE_StructMatrixInitialize(A);
+
+        HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &b);
+        HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &x);
+        HYPRE_StructVectorInitialize(b);
+        HYPRE_StructVectorInitialize(x);
+        
+    
+
+        // Set matrix values to zero initially
+        std::vector<double> values(7, 0.0);
+        for (int k = 0; k < NZ; ++k)
+            for (int j = 0; j < NY; ++j)
+                for (int i = 0; i < NX; ++i) {
+                    HYPRE_StructMatrixSetBoxValues(A, ilower, iupper, 7, iindex, values.data());
+                }
+        HYPRE_StructMatrixAssemble(A);
+
+        // Set vector values to zero initially
+        std::vector<double> rhs(NX * NY * NZ, 0.0);
+        HYPRE_StructVectorSetBoxValues(b, ilower, iupper, rhs.data());
+        HYPRE_StructVectorAssemble(b);
+
+        std::vector<double> x_init(NX * NY * NZ, 0.0);
+        HYPRE_StructVectorSetBoxValues(x, ilower, iupper, x_init.data());
+        HYPRE_StructVectorAssemble(x);
+
+        // --- Create solver ---
+
+
+
+       //delete me
+       /* HYPRE_StructGridCreate(MPI_COMM_WORLD, 2, &grid);
         HYPRE_StructStencilCreate(2, 5, &stencil);
         HYPRE_StructMatrixCreate(MPI_COMM_WORLD, grid, stencil, &A);
         HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &b);
-        HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &x);
+        HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &x);*/
+       //delete above
+    
+        grad_energy.resize(NUM_GROUPS);
+        for(int g=0;g<NUM_GROUPS;g++) {
+            grad_energy[g].resize(nx*ny, std::vector<double>(3, 0.0)); // 3 for x,y,z components
+        }
+
+        diff_coeff.resize(NUM_GROUPS, std::vector(nx*ny, 0.0));
+        ddelr.resize(NUM_GROUPS, std::vector(nx*ny, 0.0));  
+        
+        
+        for (int i = 1; i <= NUM_GROUPS; ++i) {
+            ordered.push_back(i);
+        }
+
+        // Create a random engine seeded with a non-deterministic random device
+        
+        
+
+
+
     }
+
 
     RadSolve::~RadSolve() {
         HYPRE_StructMatrixDestroy(A);
@@ -131,40 +203,168 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
         HYPRE_StructMatrixInitialize(A);
     }*/
 
-    void RadSolve::solveRadiationTransport(const Mesh& mesh, State& state, double t) {
-        //double T[NX][NY];
-        /*for (int i = 0; i < nx; i++)
-            for (int j = 0; j < ny; j++)
-                T[i][j] = 300.0;  // Initial temperature field*/
+    double RadSolve::larsendelimiter(const Mesh &mesh, State &state, Pars &pars, double opact, int i, int j, int k, int ifreq,int ord)
+    {
+        double dif=0;
 
-        /*for (int t = 0; t < TIME_STEPS; t++) {*/
-            std::cout << "Solving time step " << t << std::endl;
 
-            for (int i = 0; i < nx; i++) {
-                for (int j = 0; j < ny; j++) {
-                    int index[2] = {i, j};
-                    double source = (i == 0) ? 6000.0 : 0.0;  // Source at left boundary
-                    double rhs_value = T[i][j] + DT * source;
-                    HYPRE_StructVectorSetValues(b, index, rhs_value);
-                }
-            }
+        return dif;
+    }
 
-            HYPRE_StructVectorAssemble(b);
-            HYPRE_StructPCGCreate(MPI_COMM_WORLD, &solver);
-            HYPRE_StructPCGSetTol(solver, 1e-6);
-            HYPRE_StructPCGSetMaxIter(solver, 100);
-            HYPRE_StructPCGSetup(solver, A, b, x);
-            HYPRE_StructPCGSolve(solver, A, b, x);
+    double RadSolve::divergence(const Mesh &mesh, State &state, Pars &pars, int i, int j, int k, int ifreq)
+    {
+        double div=0;
 
-            for (int i = 0; i < nx; i++) {
-                for (int j = 0; j < ny; j++) {
-                    int index[2] = {i, j};
-                    double sol_value;
-                    HYPRE_StructVectorGetValues(x, index, &sol_value);
-                    T[i][j] = sol_value;
-                }
-            }
 
-            HYPRE_StructPCGDestroy(solver);
-        /*}*/
+        return div;
+    }
+
+    double RadSolve::gradenergy(const Mesh& mesh, State& state, Pars &pars)
+    {
+        //compute gradenergy for each group in each cell
+        // Gradient of energy field  // [group][cell][3] 
+        //std::vector<std::vector<std::vector<double>>> grad_energy
+
+        double avg=0; // A small value to avoid division by zero
+        double grad1=0,grad2=0,grad3=0;
+    
+        
+        int ic;
+        for(int n=0; n<pars.num_freq_bins; n++) {
+            for (int k = 0; k < pars.nz; ++k)
+                for (int j = 0; j < pars.ny; ++j)
+                    for (int i = 0; i < pars.nx; ++i) {
+
+                        ic=index((i+1<pars.nx?i+1:i),(j+1<pars.ny?j+1:j),(k+1<pars.nz?k+1:k),pars);
+                        grad1=(state.radiation_flux[n][ic]-state.radiation_flux[n][ic])/(2*pars.dx);
+                        grad2=(state.radiation_flux[n][ic]-state.radiation_flux[n][ic])/(2*pars.dy);
+                        grad3=(state.radiation_flux[n][ic]-state.radiation_flux[n][ic])/(2*pars.dz);
+                        avg+=grad1+grad2+grad3;
+                        grad_energy[n][ic][0]=grad1;
+                        grad_energy[n][ic][1]=grad2;
+                        grad_energy[n][ic][2]=grad3;
+        }
+    }
+
+    return avg;
+
+    }
+
+
+    void RadSolve::solveRadiationTransport(const Mesh& mesh, State& state, Pars &pars, double t) {
+
+
+        std::mt19937 g(rd());
+        std::vector<int> shuffled = ordered;
+        std::shuffle(shuffled.begin(), shuffled.end(), g);
+
+        gradenergy(mesh,state,pars); // Compute the gradient of the energy
+        std::vector<double> values(7);
+        std::vector<double> E_new(mesh.num_cells, 0.0);
+       
+        double a_nu = 0.7; // Initialize a_nu  should be computed using rosseland mean opacity
+        double kappa_nu ;
+        double sumrhs=0.0;
+        double sumcdt=0.0;
+        double sumd=0.0;
+        double summu=0.0;
+        double sumdiag=0.0;
+        double sumemis=0.0;
+        int idx=0;
+        double sum1=0.0,sum2=0.0,sum3=0.0,sum4=0.0;
+
+        int iindex[7]={0,1,2,3,4,5,6};
+        int ilower[3] = {0, 0, 0};
+        int iupper[3] = {pars.nx - 1, pars.ny - 1, pars.nz - 1};
+        int offsets[7][3] = {{0,0,0},{-1,0,0},{1,0,0},{0,-1,0},{0,1,0},{0,0,-1},{0,0,1}};
+
+
+        for(int nf=0; nf<pars.num_freq_bins; nf++) {
+            int n= shuffled[nf] - 1; // Get the shuffled frequency index (0-based)
+        for (int k = 0; k < pars.nz; ++k)
+        for (int j = 0; j < pars.ny; ++j)
+        for (int i = 0; i < pars.nx; ++i) {
+                                        idx = index(i, j, k,pars);
+                                        sum1=0;
+                                        sum2=state.heat_capacity[idx];
+                                        sum3=0.0;
+                                        sum4=0.0;
+                                        ddelr[n][idx]=0.0;
+                                        diff_coeff[n][idx]=0.0;
+                                        for(int nf1=0; nf1<pars.num_freq_bins; nf1++) {
+                                            sum1+=c*state.sigma_a[nf1][idx]*state.dBnudT(state.temperature[idx],(nf1+1)*1.0e14);
+                                            sum3=c*state.sigma_a[nf1][idx]*(Bag[nf1][idx]);
+                                            sum4=sum4+c*state.sigma_a[nf1][idx]*state.radiation_flux[nf1][idx];
+                                            diff_coeff[n][idx]+=larsendelimiter(mesh,state,pars,state.sigma_a[nf1][idx],i,j,k,nf1);
+                                            ddelr[n][idx]+=divergence(mesh,state,pars,i,j,k,nf1);
+                                        }
+                                        ddelr[n][idx]/=pars.num_freq_bins;
+                                        diff_coeff[n][idx]/=pars.num_freq_bins;
+                                        kappa_nu=1.0/(sum2+sum1);
+
+                                        double diag = pars.scale*((1.0/ (c*pars.dt)) + ddelr[n][idx] + state.sigma_a[n][idx]);
+                                        double D=ddelr[n][idx];
+                                        values[0] = diag;
+                                        for (int s = 1; s < 7; ++s) values[s] = -D ;
+
+                                        int ijk[3] = {i, j, k};
+                                        double emission = pars.emisscale*state.sigma_a[n][idx] * Bag[n][idx]; // if treating B_nu as external source
+                                        //emission=0.0;
+                                        double rhs = (state.radiation_flux[n][idx]  / (c*pars.dt)) + state.sigma_a[n][idx]*Bag[n][idx] +emission;
+
+
+
+                                        sumrhs=(fabs(rhs)>sumrhs?fabs(rhs):sumrhs);
+                                        sumemis=(fabs(emission)>sumemis?fabs(emission):sumemis);
+                                        sumdiag=(fabs(diag)>sumdiag?fabs(diag):sumdiag);
+                                        sumcdt=(fabs(pars.scale*(1.0/ (c*pars.dt)))>sumcdt?fabs(pars.scale*(1.0/ (c*pars.dt))):sumcdt);
+                                        summu=(fabs(pars.scale*state.sigma_a[n][idx])>summu?fabs(pars.scale*state.sigma_a[n][idx]):summu);
+                                        sumd=(fabs(pars.scale*D/(pars.dx*pars.dx))>sumd?fabs(pars.scale*D/(pars.dx*pars.dx)):sumd);
+                                        //HYPRE_StructVectorSetValues(b, ijk, &rhs);
+                                        HYPRE_StructVectorSetValues(b, ijk, rhs);
+
+                    }  //loop over cells
+
+                    HYPRE_StructMatrixAssemble(A);
+                    HYPRE_StructVectorAssemble(b);
+                    HYPRE_StructVectorAssemble(x);
+
+                    // Create and initialize the HYPRE krylov solver  MKG June 2025
+                    // Create Krylov solver and preconditioner
+                    // Solve using GMRES Krylov solver
+                    HYPRE_StructGMRESCreate(MPI_COMM_WORLD, &krylov_solver);
+                    HYPRE_StructGMRESSetTol(krylov_solver, 1e-6);
+                    HYPRE_StructGMRESSetMaxIter(krylov_solver, 100);
+            
+
+                    // Set up and solve
+                    HYPRE_StructGMRESSetup(krylov_solver, A, b, x);
+                    HYPRE_StructGMRESSolve(krylov_solver, A, b, x);
+                
+                    // Clean up
+                    //HYPRE_StructDiagScaleDestroy(precond);
+                    HYPRE_StructGMRESDestroy(krylov_solver);
+                    //HYPRE_StructGMRESDestroy(precond);
+
+                    // Extract solution
+                    HYPRE_StructVectorGetBoxValues(x, ilower, iupper, E_new.data());
+
+                    for (int k = 0; k < pars.nz; ++k)
+                        for (int j = 0; j < pars.ny; ++j)
+                            for (int i = 0; i < pars.nx; ++i) {
+                                idx = index(i, j, k,pars);
+                                state.radiation_fluxn[n][idx] = E_new[idx];
+                            }   
+
+
+        }//outer loop over frequencies
+
+
+
+
+
+       
+       
+       
+
     }

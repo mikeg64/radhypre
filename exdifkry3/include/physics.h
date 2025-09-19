@@ -1,7 +1,7 @@
 #pragma once
 
 #include "setup.h"
-
+#include "utilities.h"
 #include "geometry.h"   //defines mesh
 #include "material.h"   //defines material properties
 //#include "solver.h"     //defines solver class
@@ -37,7 +37,7 @@ public:
     void setSourceTerm(int group, int cell, double value);
     double getHeatCapacity(int cell) const;
     void setHeatCapacity(int cell, double value);
-
+    double dBnudT(double T, double nu);
 
 
 
@@ -48,10 +48,13 @@ public:   //set methods and make private
     
 
     std::vector<std::vector<double>> radiation_flux;   // [group][cell]
+    std::vector<std::vector<double>> radiation_fluxn;   // [group][cell]
+    std::vector<std::vector<double>> Bag;   // [group][cell]
     std::vector<std::vector<double>> sigma_a;          // [group][cell]
     std::vector<std::vector<double>> source_term;      // [group][cell]
     std::vector<double> temperature;                   // [cell]
     std::vector<double> heat_capacity;                 // [cell]
+    double etot;
 };
 
 
@@ -69,7 +72,7 @@ struct PhysicsState {
 };
 
 
-void linearize_emissive_source(const Mesh& mesh,State& state);
+void linearize_emissive_source(const Mesh& mesh,State& state, Pars &pars);
 void solve_material_heating(const Mesh& mesh, State& state);
 //void solve_radiation_groups(const Mesh& mesh, State& state); // see solver class
 State initialize_physics(Mesh& mesh,  Materials& materials);

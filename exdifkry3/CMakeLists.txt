@@ -29,6 +29,7 @@ set(SOURCES
     src/physics.cpp
     src/solver.cpp
     src/setup.cpp
+    src/utilities.cpp
 )
 
 # Create executable
