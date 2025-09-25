@@ -13,6 +13,8 @@ Pars::Pars() {
     dy = DY;
     dz = DZ;
     dt = DT;
+    df = 1.0e14; // frequency bin size
+    refg=0.6; //reflection factor for walls 0=absorbing, 1=perfect reflection
     dtmin=DTMIN;
     dtmax=DTMAX; 
     num_freq_bins = NUM_FREQ_BINS;

@@ -42,14 +42,14 @@ Mesh::Mesh(int mnx, int mny, double dx, double dy)  : nx(mnx), ny(mny), dx(dx), 
 
 
 
-Mesh setup_crooked_pipe_geometry() {
-    Mesh mesh(NX, NY, DX, DY);
+Mesh setup_crooked_pipe_geometry(Pars &pars) {
+    Mesh mesh(pars.nx, pars.ny, pars.dx, pars.dy);
     
     //mesh.num_cells = mesh.nx * mesh.ny;
     //mesh.cells.resize(mesh.num_cells);
 
  
-
+    int ibound=0;
     for (int j = 0; j < mesh.ny; ++j) {
         for (int i = 0; i < mesh.nx; ++i) {
             int idx = j * mesh.nx + i;
@@ -64,6 +64,66 @@ Mesh setup_crooked_pipe_geometry() {
                                || (i >= (4*NX/7) && i <= (5*NX/7) && j >= (NY/5) && j <= (4*NY/5))
                                || (j >= (NY/5) && j <= (2*NY/5) && i >= (5*NX/7) && i <= (NX));
 
+            if(in_pipe)
+            {
+                if (is_wall_cell(mesh, idx)) {
+                    BoundaryCondition bc;
+                    bc.cell = idx;
+                    bc.type = WALL;
+                    // Determine wall type based on position
+                    // Left wall, right wall, upper wall, lower wall
+
+                    if (i < NX / 5 && (j == NY / 2   || j==0)) {
+                        //set up and lower wall to initial condition
+                        ibound = (j==0)*BLY+(j == NY / 2)*BUY; // left box
+                    } else if (i <= (NX / 5) && j > NY / 2) {
+                        //left hand wall
+                        ibound = BLX; // right box
+                    } else if (i > ( NX / 5) && i<(2*NX/5) && j ==0) {
+                        //lower boundary 2nd box
+                        ibound = (BLY); // right box
+                    } else if (i > (NX / 5) && i < (2 * NX / 5) && j == (NY -1)) {
+                        //2nd box upper section
+                        ibound = BUY; // middle box
+                    }  else if (i >= (2*NX / 5) && i < (3 * NX / 5) && j < (NY/2 )) {
+                        //middle box lower section
+                        ibound = BLY; // middle box
+                    } else if (i >= (2*NX / 5) && i < (3 * NX / 5) && j == (NY-1 )) {
+                        //middle box upper section
+                        ibound = BUY; // middle box
+                    }  else if (i >= (3*NX / 5) && i < (4 * NX / 5) && j == 0) {
+                        // box 4 low section
+                        ibound = BLY; // middle box
+                    }  else if (i >= (3*NX / 5) && i < (4 * NX / 5) && j == (NY-1)) {
+                        // box 4 low section
+                        ibound = BUY; // middle box
+                    }  else if (i >= (4*NX / 5) && i < ( NX ) && j==0) {
+                        // box 4 low section
+                        ibound = BLY; // middle box
+                    }  else if (i >= (4*NX / 5) && i < ( NX ) && j > (NY/2)) {
+                        // box 5 upper section
+                        ibound = BUY; // middle box
+                    }    
+                    else {
+                        ibound = 0; // background
+                    }
+
+                    bc.wall_type = (WallType)ibound;
+                    mesh.boundaries.push_back(bc);
+                }
+
+            }
+            else {
+                if(mesh.cells[idx].x<(2*mesh.dx) && mesh.cells[idx].y<(2*mesh.dy*mesh.ny/5)   && mesh.cells[idx].y> (mesh.dy*mesh.ny/5)  ) 
+                { // Top row
+                    BoundaryCondition bc;
+                    bc.cell = idx;
+                    bc.type = OUTLET;
+                    mesh.boundaries.push_back(bc);
+                }
+            }
+    
+
 
             mesh.cells[idx].in_pipe = in_pipe;
             mesh.cells[idx].material_id = in_pipe ? 1 : 0;
@@ -73,26 +133,7 @@ Mesh setup_crooked_pipe_geometry() {
 
  
 
-    // Define boundaries
 
-    for (int i = 0; i < mesh.num_cells; ++i) {
-        if (mesh.cells[i].in_pipe) {
-            if (is_wall_cell(mesh, i)) {
-                BoundaryCondition bc;
-                bc.cell = i;
-                bc.type = WALL;
-                mesh.boundaries.push_back(bc);
-            }
-        }
-        else {
-            if(mesh.cells[i].x<(2*mesh.dx) && mesh.cells[i].y<(2*mesh.dy*mesh.ny/5)   && mesh.cells[i].y> (mesh.dy*mesh.ny/5)  ) { // Top row
-                BoundaryCondition bc;
-                bc.cell = i;
-                bc.type = OUTLET;
-                mesh.boundaries.push_back(bc);
-            }
-        }
-    }
 
     return mesh;
 

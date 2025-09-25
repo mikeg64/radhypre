@@ -106,64 +106,7 @@ State initialize_physics(Mesh& mesh,  Materials& materials) {
 }
 
 
-void apply_milne_boundary_conditions(Mesh& mesh, State& state)
-{
 
-    // Apply Milne boundary conditions at the domain boundaries
-    for (const auto& bc : mesh.boundaries) {
-        int cell = bc.cell;
-        if (bc.type == INLET) {
-            // For inlet, set radiation flux to a fixed value (e.g., blackbody at TINI)
-            for (int g = 0; g < NUM_GROUPS; ++g) {
-                state.radiation_flux[g][cell] = STEFAN_BOLTZMANN * std::pow(TINI, 4) / NUM_GROUPS; // Simplified
-            }
-        } else if (bc.type == OUTLET) {
-            // For outlet, apply zero-gradient condition
-            for (int g = 0; g < NUM_GROUPS; ++g) {
-                // Assuming a simple 1D layout for illustration
-                int neighbor = cell + 1; // This should be determined based on mesh connectivity
-                if (neighbor < mesh.num_cells) {
-                    state.radiation_flux[g][cell] = state.radiation_flux[g][neighbor];
-                }
-            }
-        } else if (bc.type == WALL) {
-            // For wall, set radiation flux to zero or reflective condition
-            for (int g = 0; g < NUM_GROUPS; ++g) {
-                state.radiation_flux[g][cell] = 0.0; // Absorbing wall
-            }
-        }
-    }
-}
-
-
-void apply_reflect_boundary_conditions(Mesh& mesh, State& state)
-{
-
-    // Apply Milne boundary conditions at the domain boundaries
-    for (const auto& bc : mesh.boundaries) {
-        int cell = bc.cell;
-        if (bc.type == INLET) {
-            // For inlet, set radiation flux to a fixed value (e.g., blackbody at TINI)
-            for (int g = 0; g < NUM_GROUPS; ++g) {
-                state.radiation_flux[g][cell] = STEFAN_BOLTZMANN * std::pow(TINI, 4) / NUM_GROUPS; // Simplified
-            }
-        } else if (bc.type == OUTLET) {
-            // For outlet, apply zero-gradient condition
-            for (int g = 0; g < NUM_GROUPS; ++g) {
-                // Assuming a simple 1D layout for illustration
-                int neighbor = cell + 1; // This should be determined based on mesh connectivity
-                if (neighbor < mesh.num_cells) {
-                    state.radiation_flux[g][cell] = state.radiation_flux[g][neighbor];
-                }
-            }
-        } else if (bc.type == WALL) {
-            // For wall, set radiation flux to zero or reflective condition
-            for (int g = 0; g < NUM_GROUPS; ++g) {
-                state.radiation_flux[g][cell] = 0.0; // Absorbing wall
-            }
-        }
-    }
-}
 
     State::State(int nx, int ny)
     {

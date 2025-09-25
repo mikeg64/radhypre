@@ -5,14 +5,14 @@
  
 
 
-int setupsolver() {
+/*int setupsolver() {
     // This function sets up the solver parameters and initializes necessary variables
     // It can be expanded to include more complex setup logic if needed
     // For now, it simply returns true to indicate successful setup
     return 0;
-}
+}*/
 
-void solve_radiation_groups(const Mesh& mesh, State& state) {
+/*void solve_radiation_groups(const Mesh& mesh, State& state) {
 
     for (int g = 0; g < NUM_GROUPS; ++g) {
 
@@ -56,7 +56,7 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
 
     }
 
-}
+}*/
 
 
     //RadSolve::RadSolve(int mnx, int mny) : nx(mnx), ny(mny), T(mnx, std::vector<double>(mny, 300.0)) {
@@ -288,9 +288,11 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
                 for (int j = 0; j < pars.ny; ++j)
                     for (int i = 0; i < pars.nx; ++i) {
 
-                        ic=index((i+1<pars.nx?i+1:i),(j+1<pars.ny?j+1:j),(k+1<pars.nz?k+1:k),pars);
+                        ic=index((i+1<pars.nx?i+1:i),j,k,pars);
                         grad1=(state.radiation_flux[n][ic]-state.radiation_flux[n][ic])/(2*pars.dx);
+                        ic=index(i,(j+1<pars.ny?j+1:j),k,pars);
                         grad2=(state.radiation_flux[n][ic]-state.radiation_flux[n][ic])/(2*pars.dy);
+                        ic=index(i,j,(k+1<pars.nz?k+1:k),pars);
                         grad3=(state.radiation_flux[n][ic]-state.radiation_flux[n][ic])/(2*pars.dz);
                         avg+=grad1+grad2+grad3;
                         grad_energy[n][ic][0]=grad1;
@@ -411,4 +413,102 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
 
         }//outer loop over frequencies   
 
+    }
+
+    void RadSolve::apply_milne_boundary_conditions(Mesh& mesh, State& state, Pars &pars)
+    {
+
+        int i,j,k;
+        double D;
+        double emis;
+        double F_in, F_out, refg;
+        refg=pars.refg; //reflection factor 0=absorbing, 1=perfect reflection
+
+        //here we'll compute lates D and emission values for the boundary cells
+        // Apply Milne boundary conditions at the domain boundaries
+        for (const auto& bc : mesh.boundaries) {
+            int cell = bc.cell;
+            if (bc.type == INLET) {
+                // For inlet, set radiation flux to a fixed value (e.g., blackbody at TINI)
+                for (int g = 0; g < NUM_GROUPS; ++g) {
+                    state.radiation_flux[g][cell] = STEFAN_BOLTZMANN * std::pow(TINI, 4) / NUM_GROUPS; // Simplified
+                }
+            } else if (bc.type == OUTLET) {
+                // For outlet, apply zero-gradient condition
+                for (int g = 0; g < NUM_GROUPS; ++g) {
+                    // Assuming a simple 1D layout for illustration
+                    int neighbor = cell + 1; // This should be determined based on mesh connectivity
+                    if (neighbor < mesh.num_cells) {
+                        state.radiation_flux[g][cell] = state.radiation_flux[g][neighbor];
+                    }
+                }
+            } else if (bc.type == WALL) {
+                // For wall, set radiation flux to zero or reflective condition
+                i=cell%pars.nx;
+                j=cell/pars.nx;
+                k=cell/(pars.nx*pars.ny);  
+                //be careful and check the signs here for emission and incoming flux
+                for (int g = 0; g < pars.num_freq_bins; ++g) {              
+                    emis=pars.emisscale*B_nu(state.temperature[cell],(g+1)*pars.df); // if treating B_nu as external source
+                    D=larsendelimiter(mesh,state,pars,state.sigma_a[g][cell],i,j,k,g);
+                    //state.radiation_flux[g][cell] = 0.0; // Absrbing wall
+                    if(bc.wall_type==WUY) // wall
+                    {
+                        F_in=D*(grad_energy[g][cell][1]); // incoming flux note these are the old energy gradients
+                        F_out=emis + (refg)*F_in; // outgoing flux
+                        state.radiation_flux[g][cell] += F_out*pars.dy/D;
+                    }                        
+                    else if(bc.wall_type==WLY) //lower wall
+                    {
+                        F_in=-D*(grad_energy[g][cell][1]); // incoming flux note these are the old energy gradients
+                        F_out=emis + (refg)*F_in; // outgoing flux
+                        state.radiation_flux[g][cell] += F_out*pars.dy/D;
+                    }                    
+                    else if(bc.wall_type==WUX) //lower wall
+                    {
+                        F_in=D*(grad_energy[g][cell][0]); // incoming flux note these are the old energy gradients
+                        F_out=emis + (refg)*F_in; // outgoing flux
+                        state.radiation_flux[g][cell] += F_out*pars.dx/D;
+                    }                        
+                    else if(bc.wall_type==WLX) //upper wall
+                    {
+                        F_in=-D*(grad_energy[g][cell][0]); // incoming flux note these are the old energy gradients
+                        F_out=emis + (refg)*F_in; // outgoing flux
+                        state.radiation_flux[g][cell] += F_out*pars.dx/D;
+                    }
+                    else
+                        state.radiation_flux[g][cell] = emis; // default to emissive only
+                }
+            }
+        }
+    }
+
+
+    void RadSolve::apply_reflect_boundary_conditions(Mesh& mesh, State& state, Pars &pars)
+    {
+
+        // Apply Milne boundary conditions at the domain boundaries
+        for (const auto& bc : mesh.boundaries) {
+            int cell = bc.cell;
+            if (bc.type == INLET) {
+                // For inlet, set radiation flux to a fixed value (e.g., blackbody at TINI)
+                for (int g = 0; g < NUM_GROUPS; ++g) {
+                    state.radiation_flux[g][cell] = STEFAN_BOLTZMANN * std::pow(TINI, 4) / NUM_GROUPS; // Simplified
+                }
+            } else if (bc.type == OUTLET) {
+                // For outlet, apply zero-gradient condition
+                for (int g = 0; g < NUM_GROUPS; ++g) {
+                    // Assuming a simple 1D layout for illustration
+                    int neighbor = cell + 1; // This should be determined based on mesh connectivity
+                    if (neighbor < mesh.num_cells) {
+                        state.radiation_flux[g][cell] = state.radiation_flux[g][neighbor];
+                    }
+                }
+            } else if (bc.type == WALL) {
+                // For wall, set radiation flux to zero or reflective condition
+                for (int g = 0; g < NUM_GROUPS; ++g) {
+                    state.radiation_flux[g][cell] = 0.0; // Absorbing wall
+                }
+            }
+        }
     }

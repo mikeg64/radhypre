@@ -35,10 +35,10 @@ const double EINIEQ2 = 0.0000000001; // Initial temperature for equilibrium conf
 const int    BOUNDTYPE = 1; // Boundary type for the fixed temp is 1 reflected energy i1 2, and background is 0, 3 do nothing
 const double TEMPTOL=0.1;
 const int MAXITER=10;  //temperature iteration
-const int BUY=1;//upper y 1
-const int BLY=2;//lower y 2
-const int BLX=3;//left x 3
-const int BRX=4;//right x 4
+const int BUY=0;//upper y 1
+const int BLY=1;//lower y 2
+const int BLX=2;//left x 3
+const int BRX=3;//right x 4
 const double SCALE=1.0;// Scaling factor for the diagonal term in the matrix
 const double EMISSCALE=1.0; // Scaling factor for the emission term
 
@@ -75,6 +75,8 @@ public:
     double dtmin;
     double dtmax;
     double time;
+    double df; // frequency bin size
+    double refg; //reflection factor for walls 0=absorbing, 1=perfect reflection
     int nstep;
     int nsaveinterval;
     int num_freq_bins;

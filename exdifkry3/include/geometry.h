@@ -63,7 +63,7 @@ public:
 
 };
 
-Mesh setup_crooked_pipe_geometry();
+Mesh setup_crooked_pipe_geometry(Pars &pars);
 bool is_wall_cell(const Mesh& mesh, int idx); 
 
 

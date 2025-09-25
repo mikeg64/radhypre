@@ -18,8 +18,8 @@
 
 
 
-void solve_radiation_groups(const Mesh& mesh, State& state);
-int setupsolver() ;
+//void solve_radiation_groups(const Mesh& mesh, State& state);
+//int setupsolver() ;
 
 class RadSolve {
 public:
@@ -34,7 +34,8 @@ public:
     double divergence(const Mesh &mesh, State &state, Pars &pars, int i, int j, int k, int ifreq);
     void solveRadiationTransport(const Mesh& mesh, State& state,  Pars &pars, double t);
 
-
+    void apply_milne_boundary_conditions(Mesh& mesh, State& state, Pars &pars);
+    void apply_reflect_boundary_conditions(Mesh& mesh, State& state, Pars &pars);
 
     std::random_device rd;
 

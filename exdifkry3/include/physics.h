@@ -82,8 +82,7 @@ State initialize_physics(Mesh& mesh,  Materials& materials);
 // This function computes the spectral radiance of a black body at frequency nu and temperature T
 
 
-void apply_milne_boundary_conditions(Mesh& mesh, State& state);
-void apply_reflect_boundary_conditions(Mesh& mesh, State& state);
+
 
 double planck_emission(double nu, double T);
 

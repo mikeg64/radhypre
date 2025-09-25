@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
 
     // Setup
     Pars pars= Pars();
-    Mesh mesh = setup_crooked_pipe_geometry();  //defined in geometry.h
+    Mesh mesh = setup_crooked_pipe_geometry(pars);  //defined in geometry.h
     Materials materials = initialize_materials(mesh);
 
     State state = initialize_physics(mesh, materials);  //stores the initial step
@@ -68,7 +68,7 @@ int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &stat
         //solve_radiation_groups(mesh, state);
         solver.solveRadiationTransport(mesh, state, pars, pars.time);
         //linearize_emissive_source(mesh,state,pars);  //see physics.h   
-        apply_milne_boundary_conditions(mesh, state);
+        solver.apply_milne_boundary_conditions(mesh, state, pars);
         solve_material_heating(mesh, state,pars);
 
         //Take 2 half steps dt=dt/2
@@ -76,14 +76,14 @@ int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &stat
         pars.dt=0.5*pars.dt;
         solver.solveRadiationTransport(mesh, state1, pars, pars.time);
         //solve_radiation_groups(mesh, state1);   
-        apply_milne_boundary_conditions(mesh, state1);
+        solver.apply_milne_boundary_conditions(mesh, state1, pars);
         solve_material_heating(mesh, state1,pars);
         //linearize_emissive_source(mesh,state1,pars);  //see physics.h
 
         state2.copy(state1);
         solver.solveRadiationTransport(mesh, state2, pars, pars.time);
         //solve_radiation_groups(mesh, state2);
-        apply_milne_boundary_conditions(mesh, state2);
+        solver.apply_milne_boundary_conditions(mesh, state2, pars);
         solve_material_heating(mesh, state2,pars);
         //linearize_emissive_source(mesh,state2,pars);  //see physics.h
         pars.dt=2.0*pars.dt;
