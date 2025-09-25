@@ -45,7 +45,8 @@ int main(int argc, char *argv[]) {
         //maxtempdif<0.5*temptol then new dt=2*dt update state to state2
 
         //if maxtempdif>temptol then new dt=0.5*dt update state to state1
-
+        if(timestep%pars.nsaveinterval==0)
+            state.write_vtk_file(state.temperature, (1+(timestep/pars.nsaveinterval)), pars);
 
     }
 
@@ -66,36 +67,48 @@ int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &stat
         
         //solve_radiation_groups(mesh, state);
         solver.solveRadiationTransport(mesh, state, pars, pars.time);
-        //linearize_emissive_source(mesh,state,pars);  //see physics.h
-        solve_material_heating(mesh, state);
+        //linearize_emissive_source(mesh,state,pars);  //see physics.h   
         apply_milne_boundary_conditions(mesh, state);
+        solve_material_heating(mesh, state,pars);
 
         //Take 2 half steps dt=dt/2
 
-        solver.solveRadiationTransport(mesh, state, pars, pars.time);
-        //solve_radiation_groups(mesh, state1);
-        solve_material_heating(mesh, state1);
+        pars.dt=0.5*pars.dt;
+        solver.solveRadiationTransport(mesh, state1, pars, pars.time);
+        //solve_radiation_groups(mesh, state1);   
         apply_milne_boundary_conditions(mesh, state1);
+        solve_material_heating(mesh, state1,pars);
         //linearize_emissive_source(mesh,state1,pars);  //see physics.h
 
         state2.copy(state1);
-        solver.solveRadiationTransport(mesh, state, pars, pars.time);
+        solver.solveRadiationTransport(mesh, state2, pars, pars.time);
         //solve_radiation_groups(mesh, state2);
-        solve_material_heating(mesh, state2);
         apply_milne_boundary_conditions(mesh, state2);
+        solve_material_heating(mesh, state2,pars);
         //linearize_emissive_source(mesh,state2,pars);  //see physics.h
-
+        pars.dt=2.0*pars.dt;
 
         //put this in a routine called convergence check and update dt
         //compare state and state2
         //eg something like this
+        double maxdifrat=0.0;
+        double dif,difrat;
         for(int i=0;i<mesh.num_cells;i++) {
-            if(fabs(state.temperature[i]-state2.temperature[i])>pars.temptol) {
-                std::cout<<"timestep "<<pars.dt<<" cell "<<i<<" temp1 "<<state.temperature[i]<<" temp2 "<<state2.temperature[i]<<std::endl;
-            }
-            statef.temperature[i]=0.5*(state.temperature[i]+state2.temperature[i]);
+            dif=fabs(state.temperature[i]-state2.temperature[i]);
+            difrat=dif/(0.5*(state.temperature[i]+state2.temperature[i])+1e-10);
+            maxdifrat=(difrat>maxdifrat?difrat:maxdifrat);
         }
         //do some trickery to reduce the timestep
+        if(maxdifrat<pars.temptol && pars.dt<pars.dtmax) {
+            pars.dt=2.0*pars.dt;
+            state.copy(state2);
+        }
+        else if(maxdifrat>2.0*pars.temptol && pars.dt>pars.dtmin)
+         {
+            pars.dt=0.5*pars.dt;
+            state.copy(state1);
+        }
+        //else keep time step the same and just use state
 
         return status;
 }

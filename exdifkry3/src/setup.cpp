@@ -13,6 +13,8 @@ Pars::Pars() {
     dy = DY;
     dz = DZ;
     dt = DT;
+    dtmin=DTMIN;
+    dtmax=DTMAX; 
     num_freq_bins = NUM_FREQ_BINS;
     tmin = TMIN;
     tmax = TMAX;
@@ -49,6 +51,8 @@ void Pars::readpars(std::string filename){
             else if (key == "DY") iss >> dy;
             else if (key == "DZ") iss >> dz;
             else if (key == "dt") iss >> dt;
+            else if (key == "dtmin") iss >> dtmin;
+            else if (key == "dtmax") iss >> dtmax;  
             else if (key == "num_freq_bins") iss >> num_freq_bins;
             else if (key == "TMIN") iss >> tmin;
             else if (key == "TMAX") iss >> tmax;

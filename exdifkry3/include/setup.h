@@ -17,6 +17,8 @@ const double DX = 5*0.07 / NX; //these units are in cm  should be 7cm
 const double DY = 5*0.05 / NY;  //should be 5cm
 const double DZ = 1.0 / NZ;  //should be 0.5cm
 const double DT = 1.0e-11;//1.0e-11;  // time step size
+const double DTMIN=1.0e-12; //minimum time step
+const double DTMAX=1.0e-7; //maximum time step  
 constexpr int NUM_FREQ_BINS = 10; // Number of frequency bins
 const int NUM_GROUPS = NUM_FREQ_BINS; // Number of frequency bins
 const double c = 3e10; // Speed of light in cm/s
@@ -70,6 +72,8 @@ public:
     double dy;
     double dz;
     double dt;
+    double dtmin;
+    double dtmax;
     double time;
     int nstep;
     int nsaveinterval;

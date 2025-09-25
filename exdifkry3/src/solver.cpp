@@ -203,20 +203,73 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
         HYPRE_StructMatrixInitialize(A);
     }*/
 
+    /*Return an updated flux limited value for the diffusion coefficient */
+    //use the gradient of the energy
+//the energy
+//the total opacity
+// int ifreq frequency bin number
     double RadSolve::larsendelimiter(const Mesh &mesh, State &state, Pars &pars, double opact, int i, int j, int k, int ifreq,int ord)
     {
         double dif=0;
+    
+        //double D = 1.0 / (3.0 * opact); // Corrected diffusion coefficient
+        double grad_magnitude, egradt=0;
+        //the grad here is a pointer to the gradient vector
+       
+        int ic = index(i, j, k,pars);
+        grad_magnitude = std::sqrt(
+            grad_energy[ifreq][ic][0] * grad_energy[ifreq][ic][0] +
+            grad_energy[ifreq][ic][1] * grad_energy[ifreq][ic][1] +
+            grad_energy[ifreq][ic][2] * grad_energy[ifreq][ic][2]
+        );
+    
+        egradt=grad_magnitude/(state.radiation_flux[ifreq][ic]+1e-20); // avoid div by 0
 
+        if(ord ==2)
+            return(std::sqrt(1.0/(((9.0*opact*opact) + egradt*egradt))));
+        else
+            return(1.0/std::pow((std::pow(3.0*opact,ord) + std::pow(egradt,ord)),1/ord));
 
         return dif;
     }
 
+    //Gradient of the energy
     double RadSolve::divergence(const Mesh &mesh, State &state, Pars &pars, int i, int j, int k, int ifreq)
     {
         double div=0;
+        int ic1,ic2;
+
+        ic2 = index(i, j, k,pars);
 
 
-        return div;
+        //compute the divergence of the (energy gradient multiplied by the corrected diffusion coefficient)
+        for(int di=-1; di<=1; di+=2) {
+            if(i+di>=0 && i+di<pars.nx)
+                {
+                    ic1 = index(i+di, j, k,pars);                    
+                    div+= (diff_coeff[ifreq][ic1]*grad_energy[ifreq][ic1][0] - diff_coeff[ifreq][ic2]*grad_energy[ifreq][ic2][0])/(2.0*pars.dx);
+                }        
+        }
+
+        
+        for(int dj=-1; dj<=1; dj+=2) {
+            if(j+dj>=0 && j+dj<pars.ny)
+            {
+                ic1 = index(i, j+dj, k,pars);
+                div+= (diff_coeff[ifreq][ic1]*grad_energy[ifreq][ic1][1] - diff_coeff[ifreq][ic2]*grad_energy[ifreq][ic2][1])/(2.0*pars.dy);
+            }
+        }
+
+        for(int dk=-1; dk<=1; dk+=2) {
+            if(k+dk>=0 && k+dk<pars.nz)
+            {
+                ic1 = index(i, j, k+dk,pars);
+                div+= (diff_coeff[ifreq][ic1]*grad_energy[ifreq][ic1][2] - diff_coeff[ifreq][ic2]*grad_energy[ifreq][ic2][2])/(2.0*pars.dz); 
+            }       
+        }
+        
+        return div; // A small value to avoid division by zero
+
     }
 
     double RadSolve::gradenergy(const Mesh& mesh, State& state, Pars &pars)
@@ -295,11 +348,10 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
                                             sum1+=c*state.sigma_a[nf1][idx]*state.dBnudT(state.temperature[idx],(nf1+1)*1.0e14);
                                             sum3=c*state.sigma_a[nf1][idx]*(Bag[nf1][idx]);
                                             sum4=sum4+c*state.sigma_a[nf1][idx]*state.radiation_flux[nf1][idx];
-                                            diff_coeff[n][idx]+=larsendelimiter(mesh,state,pars,state.sigma_a[nf1][idx],i,j,k,nf1);
-                                            ddelr[n][idx]+=divergence(mesh,state,pars,i,j,k,nf1);
+
                                         }
-                                        ddelr[n][idx]/=pars.num_freq_bins;
-                                        diff_coeff[n][idx]/=pars.num_freq_bins;
+                                        diff_coeff[n][idx]=larsendelimiter(mesh,state,pars,state.sigma_a[n][idx],i,j,k,n);
+                                        ddelr[n][idx]=divergence(mesh,state,pars,i,j,k,n);
                                         kappa_nu=1.0/(sum2+sum1);
 
                                         double diag = pars.scale*((1.0/ (c*pars.dt)) + ddelr[n][idx] + state.sigma_a[n][idx]);
@@ -357,14 +409,6 @@ void solve_radiation_groups(const Mesh& mesh, State& state) {
                             }   
 
 
-        }//outer loop over frequencies
-
-
-
-
-
-       
-       
-       
+        }//outer loop over frequencies   
 
     }

@@ -14,14 +14,41 @@ void linearize_emissive_source(const Mesh& mesh, State& state, Pars &pars) {
 
  
 
-void solve_material_heating(const Mesh& mesh, State& state) {
-    for (int i = 0; i < mesh.num_cells; ++i) {
-        double delta_E = 0.0;
-        for (int g = 0; g < NUM_GROUPS; ++g) {
-            delta_E += state.sigma_a[g][i] * (state.radiation_flux[g][i] - state.source_term[g][i]);
-        }
-        state.temperature[i] += DT * delta_E / state.heat_capacity[i];
-    }
+void solve_material_heating(const Mesh& mesh, State& state, Pars &pars) {
+
+
+        double etotn=0.0;
+        double sum1, sum2, sum4;
+        
+        //compute new temps
+        double delTmax=0.0;
+        double delT;
+        for (int k = 0; k < pars.nz; ++k)
+        for (int j = 0; j < pars.ny; ++j)
+        for (int i = 0; i < pars.nx; ++i) {        
+
+                sum1=0;
+                sum4=state.heat_capacity[index(i,j,k,pars)];
+                sum2=0.0;
+                int ic=index(i,j,k,pars);
+                for(int n=0; n<pars.num_freq_bins; n++) 
+                {
+                    sum1+= (c*state.sigma_a[n][ic]*(state.radiation_flux[n][ic]-state.Bag[n][ic]));
+                    sum2+= (c*state.sigma_a[n][ic]*dBnudT(state.temperature[ic],(n+1)*1.0e14));
+                    etotn+=state.radiation_flux[n][index(i,j,k,pars)];
+                              
+                }
+                //Tn[i][j][k]=Tc[i][j][k] + ((sum1/sum4)/(1+sum2));
+                state.temperature[ic] += pars.dt*(sum1/(sum2+sum4));
+                delT=fabs(pars.dt*(sum1/(sum2+sum4)));
+                if(delT>delTmax) delTmax=delT;
+                //apply boundary condition
+                etotn += state.heat_capacity[index(i,j,k)]*state.temperature[ic]; // Calculate total energy at current time step
+            }
+            state.etot=etotn;
+            std::cout<<"max temp change "<<delTmax<<std::endl;
+
+
 
 }
 
@@ -231,6 +258,42 @@ void apply_reflect_boundary_conditions(Mesh& mesh, State& state)
     {
         heat_capacity[cell] = value;
     }
+
+   // Function to write temperature data to a VTK file
+    void State::write_vtk_file(const std::vector<double> &scalf, int time_step, Pars &pars, const std::string &scalfieldname,const std::string &filename)
+     {
+        std::string vtk_filename = filename + "_" + std::to_string(time_step) + ".vtk";
+        std::ofstream vtk_file(vtk_filename);
+
+        if (!vtk_file) {
+            std::cerr << "Error: Unable to open file for writing!" << std::endl;
+            return;
+        }
+
+        vtk_file << "# vtk DataFile Version 3.0\n";
+        vtk_file << scalfieldname << " field output\n";
+        vtk_file << "ASCII\n";
+        vtk_file << "DATASET STRUCTURED_POINTS\n";
+        vtk_file << "DIMENSIONS " << pars.nx << " " << pars.ny << " 1\n";
+        vtk_file << "ORIGIN 0 0 0\n";
+        vtk_file << "SPACING 1.0 1.0 1.0\n";
+        vtk_file << "POINT_DATA " << pars.nx * pars.ny << "\n";
+        vtk_file << "SCALARS "<< scalfieldname <<" float\n";
+        vtk_file << "LOOKUP_TABLE default\n";
+
+        // Write the temperature values in row-major order
+        int k=0;
+        for (int j = 0; j < pars.ny; j++) {
+            for (int i = 0; i < pars.nx; i++) {
+                vtk_file << scalf[index(i,j,k,pars)] << "\n";
+            }
+        }
+
+        vtk_file.close();
+        std::cout << "VTK file '" << vtk_filename << "' written successfully!" << std::endl;
+    }
+
+
 
     // Function to compute Planck distribution
     double State::dBnudT(double T, double nu)

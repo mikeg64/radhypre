@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdio>
+#include <iostream>
+#include <fstream>
 
 #include "../include/setup.h"
 
