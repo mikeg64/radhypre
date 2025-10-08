@@ -12,23 +12,34 @@ int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &stat
 int main(int argc, char *argv[]) {
 
     MPI_Init(&argc, &argv);
-    HYPRE_Init();
+    
 
- 
+    //std::cout << i << "  " << j  << "   " <<  k << "  " <<  index(i,j,k) <<   "  " << Ea[i][j][k] << std::endl;
+    std::cout<<"HYPRE and MPI intialised"<<std::endl;
+    std::cout<<"Starting exdifkry3"<<std::endl;
 
     // Setup
     Pars pars= Pars();
+    pars.nstep=20;
+    pars.nsaveinterval=5;
+    std::cout<<"parameters initialised"<<std::endl;
     Mesh mesh = setup_crooked_pipe_geometry(pars);  //defined in geometry.h
+    std::cout<<"mesh initialised"<<std::endl;
     Materials materials = initialize_materials(mesh);
+    std::cout<<"materials initialised"<<std::endl;
 
     State state = initialize_physics(mesh, materials);  //stores the initial step
+    std::cout<<"physics initialised"<<std::endl;
     State state1(state);
     State statef(state);
     State state2(state);
+
+    std::cout<<"states copied initialised"<<std::endl;
     
 
     //intialize solver for each state
-    RadSolve solver(mesh.nx, mesh.ny,pars);
+    RadSolve solver(mesh.nx, mesh.ny,pars.nz, pars);
+    std::cout<<"solver initialised"<<std::endl;
  
     double temptol=1e-3; //temperature tolerance for convergence
     double maxtempdif=0.0;
@@ -36,9 +47,15 @@ int main(int argc, char *argv[]) {
     double dt=1e-10; //initial time step
     // Main time-stepping loop
     for (int timestep = 0; timestep < pars.nstep; ++timestep) {
+        time=pars.time;
+        pars.dt=dt;
+        std::cout<<"Timestep "<<timestep<<" time "<<time<<" dt "<<dt<< std::endl;
         state1.copy(state);
+        std::cout<<"state1 copied"<<std::endl;
+        state2.copy(state);
+        std::cout<<"state2 copied"<<std::endl;
         updatestate(pars, mesh, state, state1, state2, statef, solver);
-        
+        std::cout<<"state updated"<<std::endl;
 
         pars.time+=dt;
         std::cout<<"Completed timestep "<<timestep<<" time "<<time<<" dt "<<dt<< std::endl;
@@ -64,27 +81,30 @@ int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &stat
     
     //take a full step dt
         
-        
+        std::cout<<"solve radtrans"<<std::endl;
         //solve_radiation_groups(mesh, state);
-        solver.solveRadiationTransport(mesh, state, pars, pars.time);
+      // // solver.solveRadiationTransport(mesh, state, pars, pars.time);
+        std::cout<<"solved radtrans"<<std::endl;
         //linearize_emissive_source(mesh,state,pars);  //see physics.h   
         solver.apply_milne_boundary_conditions(mesh, state, pars);
+        std::cout<<"applied milne bc"<<std::endl;
         solve_material_heating(mesh, state,pars);
+        std::cout<<"solved material heating"<<std::endl;
 
         //Take 2 half steps dt=dt/2
 
         pars.dt=0.5*pars.dt;
-        solver.solveRadiationTransport(mesh, state1, pars, pars.time);
+       //// solver.solveRadiationTransport(mesh, state1, pars, pars.time);
         //solve_radiation_groups(mesh, state1);   
-        solver.apply_milne_boundary_conditions(mesh, state1, pars);
-        solve_material_heating(mesh, state1,pars);
+       //// solver.apply_milne_boundary_conditions(mesh, state1, pars);
+       //// solve_material_heating(mesh, state1,pars);
         //linearize_emissive_source(mesh,state1,pars);  //see physics.h
 
         state2.copy(state1);
-        solver.solveRadiationTransport(mesh, state2, pars, pars.time);
+        ////solver.solveRadiationTransport(mesh, state2, pars, pars.time);
         //solve_radiation_groups(mesh, state2);
-        solver.apply_milne_boundary_conditions(mesh, state2, pars);
-        solve_material_heating(mesh, state2,pars);
+        ////solver.apply_milne_boundary_conditions(mesh, state2, pars);
+        ////solve_material_heating(mesh, state2,pars);
         //linearize_emissive_source(mesh,state2,pars);  //see physics.h
         pars.dt=2.0*pars.dt;
 

@@ -60,53 +60,68 @@
 
 
     //RadSolve::RadSolve(int mnx, int mny) : nx(mnx), ny(mny), T(mnx, std::vector<double>(mny, 300.0)) {
-    RadSolve::RadSolve(int mnx, int mny, Pars &pars) : nx(mnx), ny(mny) {
-        MPI_Init(NULL, NULL);
-
+    RadSolve::RadSolve(int mnx, int mny, int mnz, Pars &pars) : nx(mnx), ny(mny), nz(mnz) {
+        //MPI_Init(NULL, NULL);
+        std::cout<<"In RadSolve constructor"<<std::endl;
         int iindex[7]={0,1,2,3,4,5,6};
         int ilower[3] = {0, 0, 0};
-        int iupper[3] = {pars.nx - 1, pars.ny - 1, pars.nz - 1};
+        int iupper[3] = {pars.nx - 1, pars.ny - 1, pars.nz-1};
         int offsets[7][3] = {{0,0,0},{-1,0,0},{1,0,0},{0,-1,0},{0,1,0},{0,0,-1},{0,0,1}};
+        HYPRE_Init();
         // --- Grid definition ---
         HYPRE_StructGridCreate(MPI_COMM_WORLD, 3, &grid);
         HYPRE_StructGridSetExtents(grid, ilower, iupper);
         HYPRE_StructGridAssemble(grid);
-
+        std::cout<<"In RadSolve constructor Grid"<<std::endl;
         // --- Stencil definition ---
         HYPRE_StructStencilCreate(3, 7, &stencil);
 
         for (int s = 0; s < 7; ++s)
             HYPRE_StructStencilSetElement(stencil, s, offsets[s]);
 
+            
+        std::cout<<"In RadSolve constructor Stencil"<<std::endl;
+
         // --- Create and initialize matrix and vectors ---
         HYPRE_StructMatrixCreate(MPI_COMM_WORLD, grid, stencil, &A);
         HYPRE_StructMatrixInitialize(A);
+
+        std::cout<<"In RadSolve constructor Matrix"<<std::endl;
 
         HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &b);
         HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &x);
         HYPRE_StructVectorInitialize(b);
         HYPRE_StructVectorInitialize(x);
         
-    
+        std::cout<<"In RadSolve constructor Vectors"<<std::endl;
 
         // Set matrix values to zero initially
         std::vector<double> values(7, 0.0);
-        for (int k = 0; k < NZ; ++k)
-            for (int j = 0; j < NY; ++j)
-                for (int i = 0; i < NX; ++i) {
-                    HYPRE_StructMatrixSetBoxValues(A, ilower, iupper, 7, iindex, values.data());
-                }
-        HYPRE_StructMatrixAssemble(A);
-
+        std::vector<double> rhs(nx * ny * nz, 0.0);
+       /* for (int k = 0; k < nz; ++k)
+            for (int j = 0; j < ny; ++j)
+                for (int i = 0; i < nx; ++i) {
+                    //int ilower[3] = {i, j, k};
+                    //int iupper[3] = {i, j, k};  // single point update
+                    //HYPRE_StructMatrixSetBoxValues(A, ilower, iupper, 7, iindex, values.data());
+                    //HYPRE_StructMatrixSetBoxValues(A, ilower, iupper, 7, offsets, values.data());
+                    int ijk[3] = {i, j, k};
+                    HYPRE_StructMatrixSetValues(A, ijk, 7, (HYPRE_Int*)iindex, values.data());
+                    //HYPRE_StructVectorSetValues(b, ijk, &rhs[(i + j * nx + k * nx * ny)]);
+                }*/
+        //HYPRE_StructMatrixAssemble(A);
+        //HYPRE_StructVectorSetBoxValues(b, ilower, iupper, rhs.data());
+        std::cout<<"In RadSolve constructor finished mat"<<std::endl;
         // Set vector values to zero initially
-        std::vector<double> rhs(NX * NY * NZ, 0.0);
-        HYPRE_StructVectorSetBoxValues(b, ilower, iupper, rhs.data());
-        HYPRE_StructVectorAssemble(b);
+        //std::vector<double> rhs(nx * ny * nz, 0.0);
+        //HYPRE_StructVectorSetBoxValues(b, ilower, iupper, rhs.data());
+        // HYPRE_StructVectorSetValues(b, ijk, rhs);
+        //HYPRE_StructVectorAssemble(b);
 
-        std::vector<double> x_init(NX * NY * NZ, 0.0);
-        HYPRE_StructVectorSetBoxValues(x, ilower, iupper, x_init.data());
-        HYPRE_StructVectorAssemble(x);
-
+        //std::vector<double> x_init(nx * ny * nz, 0.0);
+        //HYPRE_StructVectorSetBoxValues(x, ilower, iupper, x_init.data());
+        //HYPRE_StructVectorAssemble(x);  
+        std::cout<<"HYPRE Matrix and vectors created and initialized"<<std::endl;
         // --- Create solver ---
 
 
@@ -133,7 +148,7 @@
         }
 
         // Create a random engine seeded with a non-deterministic random device
-        
+        std::cout<<"In RadSolve constructor before shuffle"<<std::endl;
         
 
 
@@ -147,7 +162,7 @@
         HYPRE_StructStencilDestroy(stencil);
         HYPRE_StructVectorDestroy(b);
         HYPRE_StructVectorDestroy(x);
-        MPI_Finalize();
+        //MPI_Finalize();
     }
 
     // Method to return the temperature field
@@ -362,6 +377,7 @@
                                         for (int s = 1; s < 7; ++s) values[s] = -D ;
 
                                         int ijk[3] = {i, j, k};
+                                        HYPRE_StructMatrixSetValues(A, ijk, 7, (HYPRE_Int*)iindex, values.data());
                                         double emission = pars.emisscale*state.sigma_a[n][idx] * Bag[n][idx]; // if treating B_nu as external source
                                         //emission=0.0;
                                         double rhs = (state.radiation_flux[n][idx]  / (c*pars.dt)) + state.sigma_a[n][idx]*Bag[n][idx] +emission;

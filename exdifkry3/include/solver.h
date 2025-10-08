@@ -23,7 +23,7 @@
 
 class RadSolve {
 public:
-    RadSolve(int mnx, int mny, Pars &pars);
+    RadSolve(int mnx, int mny, int mnz, Pars &pars);
     ~RadSolve();
     //const std::vector<std::vector<double>>& getTemperatureField() const;
     //void setTemperature(int i, int j, double value);
@@ -41,7 +41,7 @@ public:
 
 
 private:
-    int nx, ny; // Grid dimensions 
+    int nx, ny, nz; // Grid dimensions 
 
     // HYPRE grid, stencil, matrix, vectors
     HYPRE_StructGrid grid;
