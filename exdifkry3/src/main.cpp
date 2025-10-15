@@ -83,28 +83,28 @@ int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &stat
         
         std::cout<<"solve radtrans"<<std::endl;
         //solve_radiation_groups(mesh, state);
-      // // solver.solveRadiationTransport(mesh, state, pars, pars.time);
+        solver.solveRadiationTransport(mesh, state, pars, pars.time);   //FIXME
         std::cout<<"solved radtrans"<<std::endl;
         //linearize_emissive_source(mesh,state,pars);  //see physics.h   
-        solver.apply_milne_boundary_conditions(mesh, state, pars);
+        solver.apply_milne_boundary_conditions(mesh, state, pars);   //CHECKME
         std::cout<<"applied milne bc"<<std::endl;
-        solve_material_heating(mesh, state,pars);
+        solve_material_heating(mesh, state,pars);   //FIXME
         std::cout<<"solved material heating"<<std::endl;
 
         //Take 2 half steps dt=dt/2
 
         pars.dt=0.5*pars.dt;
-       //// solver.solveRadiationTransport(mesh, state1, pars, pars.time);
+        solver.solveRadiationTransport(mesh, state1, pars, pars.time);
         //solve_radiation_groups(mesh, state1);   
-       //// solver.apply_milne_boundary_conditions(mesh, state1, pars);
-       //// solve_material_heating(mesh, state1,pars);
+        solver.apply_milne_boundary_conditions(mesh, state1, pars);
+        solve_material_heating(mesh, state1,pars);
         //linearize_emissive_source(mesh,state1,pars);  //see physics.h
 
         state2.copy(state1);
-        ////solver.solveRadiationTransport(mesh, state2, pars, pars.time);
+        solver.solveRadiationTransport(mesh, state2, pars, pars.time);
         //solve_radiation_groups(mesh, state2);
-        ////solver.apply_milne_boundary_conditions(mesh, state2, pars);
-        ////solve_material_heating(mesh, state2,pars);
+        solver.apply_milne_boundary_conditions(mesh, state2, pars);
+        solve_material_heating(mesh, state2,pars);
         //linearize_emissive_source(mesh,state2,pars);  //see physics.h
         pars.dt=2.0*pars.dt;
 
@@ -118,6 +118,7 @@ int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &stat
             difrat=dif/(0.5*(state.temperature[i]+state2.temperature[i])+1e-10);
             maxdifrat=(difrat>maxdifrat?difrat:maxdifrat);
         }
+        std::cout<<"max temp dif ratio "<<maxdifrat<<std::endl;
         //do some trickery to reduce the timestep
         if(maxdifrat<pars.temptol && pars.dt<pars.dtmax) {
             pars.dt=2.0*pars.dt;
@@ -129,6 +130,7 @@ int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &stat
             state.copy(state1);
         }
         //else keep time step the same and just use state
+        std::cout<<"new dt "<<pars.dt<<std::endl;
 
         return status;
 }

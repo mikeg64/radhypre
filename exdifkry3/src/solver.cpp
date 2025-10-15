@@ -134,13 +134,16 @@
         HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &x);*/
        //delete above
     
+    
         grad_energy.resize(NUM_GROUPS);
         for(int g=0;g<NUM_GROUPS;g++) {
             grad_energy[g].resize(nx*ny, std::vector<double>(3, 0.0)); // 3 for x,y,z components
         }
 
-        diff_coeff.resize(NUM_GROUPS, std::vector(nx*ny, 0.0));
-        ddelr.resize(NUM_GROUPS, std::vector(nx*ny, 0.0));  
+
+        Bag.resize(NUM_GROUPS, std::vector(nx*ny*nz, 0.0));
+        diff_coeff.resize(NUM_GROUPS, std::vector(nx*ny*nz, 0.0));
+        ddelr.resize(NUM_GROUPS, std::vector(nx*ny*nz, 0.0));  
         
         
         for (int i = 1; i <= NUM_GROUPS; ++i) {
@@ -327,8 +330,10 @@
         std::mt19937 g(rd());
         std::vector<int> shuffled = ordered;
         std::shuffle(shuffled.begin(), shuffled.end(), g);
-
+       
+        std::cout<<"In solveRadiationTransport"<<std::endl;
         gradenergy(mesh,state,pars); // Compute the gradient of the energy
+        std::cout<<"Computed gradenergy"<<std::endl;
         std::vector<double> values(7);
         std::vector<double> E_new(mesh.num_cells, 0.0);
        
@@ -351,6 +356,8 @@
 
         for(int nf=0; nf<pars.num_freq_bins; nf++) {
             int n= shuffled[nf] - 1; // Get the shuffled frequency index (0-based)
+
+            std::cout<<"Solving frequency bin "<<n<<std::endl;
         for (int k = 0; k < pars.nz; ++k)
         for (int j = 0; j < pars.ny; ++j)
         for (int i = 0; i < pars.nx; ++i) {
@@ -363,12 +370,13 @@
                                         diff_coeff[n][idx]=0.0;
                                         for(int nf1=0; nf1<pars.num_freq_bins; nf1++) {
                                             sum1+=c*state.sigma_a[nf1][idx]*state.dBnudT(state.temperature[idx],(nf1+1)*1.0e14);
-                                            sum3=c*state.sigma_a[nf1][idx]*(Bag[nf1][idx]);
+                                            sum3=c*state.sigma_a[nf1][idx]*(state.Bag[nf1][idx]);
                                             sum4=sum4+c*state.sigma_a[nf1][idx]*state.radiation_flux[nf1][idx];
 
                                         }
                                         diff_coeff[n][idx]=larsendelimiter(mesh,state,pars,state.sigma_a[n][idx],i,j,k,n);
                                         ddelr[n][idx]=divergence(mesh,state,pars,i,j,k,n);
+                                        ;//std::cout<<"Computed diff_coeff and ddelr "<<diff_coeff[n][idx]<<" "<<ddelr[n][idx]<<std::endl;
                                         kappa_nu=1.0/(sum2+sum1);
 
                                         double diag = pars.scale*((1.0/ (c*pars.dt)) + ddelr[n][idx] + state.sigma_a[n][idx]);
@@ -377,12 +385,14 @@
                                         for (int s = 1; s < 7; ++s) values[s] = -D ;
 
                                         int ijk[3] = {i, j, k};
-                                        HYPRE_StructMatrixSetValues(A, ijk, 7, (HYPRE_Int*)iindex, values.data());
-                                        double emission = pars.emisscale*state.sigma_a[n][idx] * Bag[n][idx]; // if treating B_nu as external source
+                                        //std::cout<<"Setting matrix and emission values at cell "<<idx<<" i,j,k "<<i<<" "<<j<<" "<<k<<std::endl
+                                         HYPRE_StructMatrixSetValues(A, ijk, 7, (HYPRE_Int*)iindex, values.data());
+                                        double emission = pars.emisscale*state.sigma_a[n][idx] * state.Bag[n][idx]; // if treating B_nu as external source
+                                        ;//std::cout<<"Computed emission "<<emission<<std::endl;
                                         //emission=0.0;
-                                        double rhs = (state.radiation_flux[n][idx]  / (c*pars.dt)) + state.sigma_a[n][idx]*Bag[n][idx] +emission;
+                                        double rhs = (state.radiation_flux[n][idx]  / (c*pars.dt)) + state.sigma_a[n][idx]*state.Bag[n][idx] +emission;
 
-
+                                        //std::cout<< rhs<<" "<<emission<<" "<<diag<<" "<<D<<" "<<state.sigma_a[n][idx]<<" "<<state.radiation_flux[n][idx]<<" "<<Bag[n][idx]<<" "<<pars.dt<<std::endl;
 
                                         sumrhs=(fabs(rhs)>sumrhs?fabs(rhs):sumrhs);
                                         sumemis=(fabs(emission)>sumemis?fabs(emission):sumemis);

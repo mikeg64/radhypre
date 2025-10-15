@@ -23,6 +23,8 @@ void solve_material_heating(const Mesh& mesh, State& state, Pars &pars) {
         //compute new temps
         double delTmax=0.0;
         double delT;
+
+        
         for (int k = 0; k < pars.nz; ++k)
         for (int j = 0; j < pars.ny; ++j)
         for (int i = 0; i < pars.nx; ++i) {        
@@ -148,6 +150,9 @@ State initialize_physics(Mesh& mesh,  Materials& materials) {
         radiation_fluxn = other.radiation_fluxn;
         sigma_a = other.sigma_a;
         source_term = other.source_term;
+        Bag = other.Bag;
+        etot=other.etot;
+        
     }
 
     int State::getNumCells() const

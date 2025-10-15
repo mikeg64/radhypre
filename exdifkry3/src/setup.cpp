@@ -7,6 +7,7 @@ Pars::Pars() {
     // Default parameters
     nx = NX;
     ny = NY;
+    nz = NZ;
     nstep = NSTEP;
     nsaveinterval = N_SAVEINTERVAL;
     dx = DX;
