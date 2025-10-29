@@ -29,28 +29,34 @@
 
 // A sample program demonstrating using Google C++ testing framework.
 
-#ifndef GOOGLETEST_SAMPLES_SAMPLE1_H_
-#define GOOGLETEST_SAMPLES_SAMPLE1_H_
+#ifndef GOOGLETEST_HYPTEST1_H_
+#define GOOGLETEST_HYPTEST1_H_
+
+
+#include "../include/geometry.h"
+#include "../include/setup.h"
 
 //Instantiate octant from margery
-double ParamFileRead();
-double InstantiateOctant();
-int InstantiateRadtmesh();
+double ParamSetup();
+int createcrookedpipe();
+/*double InstantiateOctant();
+int InstantiateRadtmesh();*/
+
 int InitialiseGrid();
-int CreateField();
+/*int CreateField();*/
 
 int CreateSweepGraph();
-int SingleSweepTest();
+/*int SingleSweepTest();
 int IntegrateFieldsTest();
 int AdvanceFieldsTest();
 int SourceTest();
 int BoundaryTest();
 
-int InstantiateRadtsimulation();
+int InstantiateRadtsimulation();*/
 // Returns n! (the factorial of n).  For negative n, n! is defined to be 1.
 int Factorial(int n);
 
 // Returns true if and only if n is a prime number.
 bool IsPrime(int n);
 
-#endif  // GOOGLETEST_SAMPLES_SAMPLE1_H_
+#endif  // GOOGLETEST_HYPTEST1_H_

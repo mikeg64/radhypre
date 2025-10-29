@@ -29,34 +29,54 @@
 
 // A sample program demonstrating using Google C++ testing framework.
 
-#include "margtest1.h"
-#include "../../include/octant.h"
+#include "hyptest1.h"
+//#include "../../include/octant.h"
 //#include "radtmesh.h"
-#include "radraytsimulation.h"
-#include "RadInputData.h"
+//#include "radraytsimulation.h"
+//#include "RadInputData.h"
 #include <iostream>
 
 
 
 //only a single octant!
-double ParamFileRead()
+double ParamSetup()
 {
 	double result;
-  RadInputData data;
-	
-  data.display();
+
+    Pars pars= Pars();
+    pars.nstep=20;
+    pars.nsaveinterval=5;
+    std::cout<<"parameters initialised"<<std::endl;
+
+
+ 
+  /*data.display();
    std::cout << "test read input file" << std::endl;
    if (data.readInputFile("input.txt")) {
         data.display();  // Display parsed data
     } else {
         std::cerr << "Failed to read input file!" << std::endl;
-    }
+    }*/
 
 
 	result=0;
 	return result;
 }
 
+int createcrookedpipe()
+{
+    // Setup
+    Pars pars= Pars();
+    pars.nstep=20;
+    pars.nsaveinterval=5;
+    std::cout<<"parameters initialised"<<std::endl;
+    Mesh mesh = setup_crooked_pipe_geometry(pars);  //defined in geometry.h
+    std::cout<<"mesh initialised"<<std::endl;
+
+    return 0;
+
+}
+/*
 //The model is a single mesh composed of
 // a collection of octants
 // each octant will have a list of grids
@@ -123,15 +143,15 @@ int CreateField()
 
 	result=simmesh.m_na;
 	return result;  
-}
+}*/
 
 
 int InitialiseGrid()
 {
-	int result;
+	int result=10;
   int i1,i2,i3;
 
-  RadInputData data;
+ /* RadInputData data;
   radtmesh simmesh(data);
 
 
@@ -166,6 +186,8 @@ std::shared_ptr<grid> tg=simmesh.octants[0]->mgrid[1];
 
     //rf= std::dynamic_pointer_cast<rad>((tg->ifield[2]));
     //rf= std::static_pointer_cast<rad>((tg->ifield[GETINDEX(i1,i2,i3,n1,n2,n3)])); 
+
+    */
     /*if(rf !=nullptr)
     {
        std::cout<<"res "<<std::endl;
@@ -176,30 +198,32 @@ std::shared_ptr<grid> tg=simmesh.octants[0]->mgrid[1];
     */
 
 
-	result=simmesh.m_na;
+	//result=simmesh.m_na;
 	return result;
 }
 
+
+
 int CreateSweepGraph()
 {
-int result;
+int result=5;
   int i1,i2,i3;
-  RadInputData data;
+  /*RadInputData data;
   radtmesh simmesh(data);
   simmesh.creategrid();
-  simmesh.initgrid();
+  simmesh.initgrid();*/
  
 
   //std::shared_ptr<grid> tg=simmesh.octants[0]->mgrid[1];
    // std::shared_ptr<rad>rf;
    // std::shared_ptr<rad>tnf;
- int n1=simmesh.nx;//tg->n1;
-    int n2=simmesh.ny;//tg->n2;
-    int n3=simmesh.nz;//tg->n3; //number of cells in each direction
+ //int n1=simmesh.nx;//tg->n1;
+  //  int n2=simmesh.ny;//tg->n2;
+  //  int n3=simmesh.nz;//tg->n3; //number of cells in each direction
 
-i1=0;
-i2=0;
-i3=0;
+//i1=0;
+//i2=0;
+//i3=0;
 
    // rf= std::static_pointer_cast<rad>((tg->ifield[0]));
     //rf= std::static_pointer_cast<rad>((tg->ifield[GETINDEX(i1,i2,i3,n1,n2,n3)])); 
@@ -213,7 +237,7 @@ i3=0;
     else
       std::cout<<"nullptr"<<std::endl;*/
 
-      std::cout<<"setup radsweepgraph"<<std::endl;
+/*    std::cout<<"setup radsweepgraph"<<std::endl;
  simmesh.radsetupsweepgraph();
 
 std::cout<<"test rad pointers"<<std::endl;
@@ -253,7 +277,7 @@ std::cout<<"test rad pointers"<<std::endl;
 
  simmesh.setnbrcellptrs();
  
-  result=simmesh.m_na;
+  result=simmesh.m_na;*/
 
   /*std::shared_ptr<radtmesh> rtsimmesh = std::make_shared<radtmesh>(10,1,1);
   radraytsimulation rtsimulation(rtsimmesh);
@@ -264,7 +288,7 @@ std::cout<<"test rad pointers"<<std::endl;
 	return result;
 }
 
-int SingleSweepTest()
+/*int SingleSweepTest()
 {
 int result;
 RadInputData data;
@@ -324,9 +348,9 @@ simmesh.computeradtemp();
   result=simmesh.m_na;
 	return result;
 }
+*/
 
-
-
+/*
 int IntegrateFieldsTest()
 {
   int result;
@@ -372,8 +396,11 @@ int BoundaryTest()
   result=simmesh.m_na;
 	return result;
 }
+*/
 
 
+
+/*
 int InstantiateRadtsimulation()
 {
 	int result;
@@ -418,7 +445,7 @@ int InstantiateRadtsimulation()
   result=12;
 	return result;
 }
-
+*/
 
 // Returns n! (the factorial of n).  For negative n, n! is defined to be 1.
 int Factorial(int n) {

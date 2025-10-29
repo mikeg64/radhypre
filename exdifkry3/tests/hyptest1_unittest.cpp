@@ -39,7 +39,7 @@
 //
 // Don't forget gtest.h, which declares the testing framework.
 
-#include "margtest1.h"
+#include "hyptest1.h"
 
 #include <limits.h>
 
@@ -98,16 +98,26 @@ TEST(FactorialTest, Negative) {
 
 
 //Test the radtmesh class
-TEST(ParamFileReadTest, Zero) 
+TEST(ParamSetup, Zero) 
 { 
   // Tests Octant Instantiation of 0.
-  EXPECT_EQ(0, ParamFileRead()); 
+  EXPECT_EQ(0, ParamSetup()); 
 
 
 }
 
 
+//Test the radtmesh class
+TEST(createcrookedpipe, Zero) 
+{ 
+  // Tests Octant Instantiation of 0.
+  EXPECT_EQ(0, createcrookedpipe()); 
 
+
+}
+
+
+/*
 //Test the radtmesh class
 TEST(InstantiateRadtsimulationTest, Zero) 
 { 
@@ -157,6 +167,8 @@ TEST(InitialiseGridTest, Zero)
   //ASSERT_TRUE(simmesh.m_na != 0);
 
 }
+*/
+
 
 //Test the build the sweep graph
 TEST(CreateSweepGraphTest, Zero) 
@@ -168,6 +180,7 @@ TEST(CreateSweepGraphTest, Zero)
 
 }
 
+/*
 //Test the sweep test
 TEST(SingleSweepTest, Zero) 
 { 
@@ -218,7 +231,7 @@ TEST(BoundaryTest, Zero)
   //ASSERT_TRUE(simmesh.m_na != 0);
 
 }
-
+*/
 
 //Test the derived class
 

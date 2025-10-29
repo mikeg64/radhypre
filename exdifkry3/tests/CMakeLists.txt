@@ -16,6 +16,7 @@ include_directories(${MPI_INCLUDE_PATH})
 # HYPRE installation path
 set(HYPRE_DIR "/home/mike/proj/hypre/src/hypre")
 set(GOOGLETEST_DIR "/home/mike/proj/googletest/build")
+#set(GOOGLETEST_DIR "/home/mike/proj/radhypre_classkrymgdif/exdifkry3/tests/googletest")
 include_directories(${HYPRE_DIR}/include
                     ${GOOGLETEST_DIR}/include)
 link_directories(${HYPRE_DIR}/lib
@@ -27,7 +28,6 @@ include_directories(include)
 
 # Source files
 set(SOURCES
-    ../src/main.cpp
     ../src/geometry.cpp
     ../src/Material.cpp
     ../src/physics.cpp
@@ -36,11 +36,10 @@ set(SOURCES
     ../src/utilities.cpp
     hyptest1.cpp
     hyptest1_unittest.cpp
-    hyptest
 )
-
+enable_testing()
 # Create executable
 add_executable(hyptest ${SOURCES})
 
 # Link libraries
-target_link_libraries(hyptest ${MPI_CXX_LIBRARIES} HYPRE)
+target_link_libraries(hyptest ${MPI_CXX_LIBRARIES} HYPRE gtest gtest_main)
