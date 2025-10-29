@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
     Materials materials = initialize_materials(mesh);
     std::cout<<"materials initialised"<<std::endl;
 
-    State state = initialize_physics(mesh, materials);  //stores the initial step
+    State state = initialize_physics(mesh, materials,pars);  //stores the initial step
     std::cout<<"physics initialised"<<std::endl;
     State state1(state);
     State statef(state);

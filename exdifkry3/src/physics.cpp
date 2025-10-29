@@ -65,7 +65,7 @@ void solve_material_heating(const Mesh& mesh, State& state, Pars &pars) {
     }
 }*/
 
-State initialize_physics(Mesh& mesh,  Materials& materials) {
+State initialize_physics(Mesh& mesh,  Materials& materials, Pars &pars) {
 
     State state(mesh.nx, mesh.ny);
     int num_cells = mesh.num_cells;
@@ -84,6 +84,7 @@ State initialize_physics(Mesh& mesh,  Materials& materials) {
         int mat_id = mesh.cells[i].material_id;
         // Set initial temperature (e.g., 1 keV blackbody)
         state.temperature[i] = TMIN; //1.16e7; // Kelvin
+        state.temperature[i] = initial_temperature( mesh, pars, i); // Initial temperature
         // Set heat capacity from material database
         state.heat_capacity[i] = materials.get_heat_capacity(mat_id);
         // Set absorption coefficients per group
@@ -104,6 +105,23 @@ State initialize_physics(Mesh& mesh,  Materials& materials) {
     }
 
     return state;
+
+}
+
+double initial_temperature( const Mesh& mesh, Pars &pars, int icell) {
+    // Example: Set initial temperature based on position
+    // Here we set a uniform initial temperature, but this can be modified  as needed
+    double tini=pars.tini;
+    int i= icell % pars.nx;
+    int j= (icell / pars.nx) % pars.ny; 
+    int k= icell /(pars.nx*pars.ny);
+
+    if(i<4 && j<(3*(pars.ny/2)/4) && j>((pars.ny)/4))
+        tini=pars.tmin+1.0e9*pars.tini*std::exp(-((i-2)*(i-2)+(j-pars.ny/2)*(j-pars.ny/2))/(4.0));     
+    else
+        tini=pars.tmin;
+
+    return tini; // Kelvin      
 
 }
 

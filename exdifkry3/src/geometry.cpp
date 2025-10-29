@@ -64,6 +64,13 @@ Mesh setup_crooked_pipe_geometry(Pars &pars) {
                                || (i >= (4*NX/7) && i <= (5*NX/7) && j >= (NY/5) && j <= (4*NY/5))
                                || (j >= (NY/5) && j <= (2*NY/5) && i >= (5*NX/7) && i <= (NX));
 
+
+
+
+                               
+            mesh.cells[idx].in_pipe = in_pipe;
+            mesh.cells[idx].material_id = in_pipe ? 1 : 0;
+
             if(in_pipe)
             {
                 if (is_wall_cell(mesh, idx)) {
@@ -125,8 +132,7 @@ Mesh setup_crooked_pipe_geometry(Pars &pars) {
     
 
 
-            mesh.cells[idx].in_pipe = in_pipe;
-            mesh.cells[idx].material_id = in_pipe ? 1 : 0;
+
         }
 
     }

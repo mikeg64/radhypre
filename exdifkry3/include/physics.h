@@ -77,10 +77,10 @@ struct PhysicsState {
 void linearize_emissive_source(const Mesh& mesh,State& state, Pars &pars);
 void solve_material_heating(const Mesh& mesh, State& state, Pars &pars);
 //void solve_radiation_groups(const Mesh& mesh, State& state); // see solver class
-State initialize_physics(Mesh& mesh,  Materials& materials);
+State initialize_physics(Mesh& mesh,  Materials& materials, Pars &pars);
 //same as B_nu but for Planck's law
 // This function computes the spectral radiance of a black body at frequency nu and temperature T
-
+double initial_temperature( const Mesh& mesh, Pars &pars, int icell) ;
 
 
 
