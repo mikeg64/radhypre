@@ -168,6 +168,18 @@
         //MPI_Finalize();
     }
 
+    int RadSolve::updatestate(Pars &pars, Mesh &mesh, State &state) {   
+        int status=0;
+        // Update the state using radiation transport solver
+        solveRadiationTransport(mesh, state, pars, pars.time);
+
+        //careful select BCs here
+        apply_milne_boundary_conditions(mesh, state, pars);
+        solve_material_heating(mesh, state,pars);
+
+        return status;
+    }
+
     // Method to return the temperature field
     /*const std::vector<std::vector<double>>& RadSolve::getTemperatureField() const {
         return T;

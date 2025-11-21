@@ -36,6 +36,7 @@ public:
 
     void apply_milne_boundary_conditions(Mesh& mesh, State& state, Pars &pars);
     void apply_reflect_boundary_conditions(Mesh& mesh, State& state, Pars &pars);
+    int updatestate(Pars &pars, Mesh &mesh, State &state);
 
     std::random_device rd;
 

@@ -33,8 +33,8 @@
 #define GOOGLETEST_HYPTEST1_H_
 
 
-#include "../include/geometry.h"
-#include "../include/setup.h"
+#include "../../include/geometry.h"
+#include "../../include/setup.h"
 
 //Instantiate octant from margery
 double ParamSetup();

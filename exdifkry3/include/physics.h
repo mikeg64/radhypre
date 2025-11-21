@@ -22,6 +22,7 @@ class State {
 public:
     State(int nx, int ny);
     State(State &other) ;
+    State(Pars &pars);
 
     ~State();
     std::vector<double>& getTemperatureField();

@@ -65,9 +65,10 @@ void solve_material_heating(const Mesh& mesh, State& state, Pars &pars) {
     }
 }*/
 
+//TODO replace contants with pars defined values
 State initialize_physics(Mesh& mesh,  Materials& materials, Pars &pars) {
 
-    State state(mesh.nx, mesh.ny);
+    State state(pars);
     int num_cells = mesh.num_cells;
 
     // Resize group-dependent vectors
@@ -144,6 +145,26 @@ double initial_temperature( const Mesh& mesh, Pars &pars, int icell) {
 
         etot=0.0;
     }
+
+    State::State(Pars &pars)
+    {
+        int num_cells = pars.nx * pars.ny * pars.nz;
+        
+
+        // Resize group-dependent vectors
+        radiation_flux.resize(pars.num_groups, std::vector(num_cells, 0.0));
+        radiation_fluxn.resize(pars.num_groups, std::vector(num_cells, 0.0));
+        sigma_a.resize(pars.num_groups, std::vector(num_cells, 0.0));
+        source_term.resize(pars.num_groups, std::vector(num_cells, 0.0));
+        Bag.resize(pars.num_groups, std::vector(num_cells, 0.0));
+
+        // Resize temperature and heat capacity
+        temperature.resize(num_cells, 0.0);
+        heat_capacity.resize(num_cells, 0.0);
+
+        etot=0.0;
+    }
+
 
     State::State(State &other) : radiation_flux(other.radiation_flux), sigma_a(other.sigma_a), source_term(other.source_term), temperature(other.temperature), heat_capacity(other.heat_capacity) 
     {
