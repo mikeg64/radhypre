@@ -21,7 +21,7 @@ Materials initialize_materials(const Mesh& mesh)
         if (material_id == 1) { // Material 1
             mats.set_sigma_a(i, 10.0); // Example value
             mats.set_heat_capacity(i,  1.0); // Example value
-        } else { // Default material
+        } else { // Default material , material 0 the absorbing wall material
             mats.set_sigma_a(i, 1000.0); // Example value
             mats.set_heat_capacity(i,  10000.0); // Example value
         }
@@ -132,4 +132,17 @@ Materials::Materials() {
             status=1.0;
         }
         return status; // Default value if material ID not found
-    }   
+    }  
+    
+   int Materials::add_material(int material_id, const MaterialProperties& props) {
+    // Try to insert a new material
+    auto result = material_properties.insert({material_id, props});
+
+    if (result.second) {
+        // Insert succeeded (new material added)
+        return 0;
+    } else {
+        // Insert failed (material_id already exists)
+        return 1;
+    }
+} 

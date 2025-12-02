@@ -25,6 +25,10 @@ public:
 
     int set_heat_capacity(int material_id, double heatcapacity);
 
+    int add_material(int material_id, const MaterialProperties& props);
+
+
+
 
 
 };

@@ -20,8 +20,8 @@ int main(int argc, char *argv[]) {
 
     // Setup
     Pars pars= Pars();
-    pars.nstep=20;
-    pars.nsaveinterval=5;
+    //pars.nstep=20;
+    //pars.nsaveinterval=5;
     std::cout<<"parameters initialised"<<std::endl;
     Mesh mesh = setup_crooked_pipe_geometry(pars);  //defined in geometry.h
     std::cout<<"mesh initialised"<<std::endl;
@@ -41,24 +41,24 @@ int main(int argc, char *argv[]) {
     RadSolve solver(mesh.nx, mesh.ny,pars.nz, pars);
     std::cout<<"solver initialised"<<std::endl;
  
-    double temptol=1e-3; //temperature tolerance for convergence
+    double temptol=1.0; //temperature tolerance for convergence
     double maxtempdif=0.0;
     double time=0.0;
     double dt=1e-10; //initial time step
     // Main time-stepping loop
     for (int timestep = 0; timestep < pars.nstep; ++timestep) {
         time=pars.time;
-        pars.dt=dt;
+        //pars.dt=dt;
         std::cout<<"Timestep "<<timestep<<" time "<<time<<" dt "<<dt<< std::endl;
         state1.copy(state);
-        std::cout<<"state1 copied"<<std::endl;
+        //std::cout<<"state1 copied"<<std::endl;
         state2.copy(state);
-        std::cout<<"state2 copied"<<std::endl;
+        //std::cout<<"state2 copied"<<std::endl;
         updatestate(pars, mesh, state, state1, state2, statef, solver);
-        std::cout<<"state updated"<<std::endl;
+        //std::cout<<"state updated"<<std::endl;
 
-        pars.time+=dt;
-        std::cout<<"Completed timestep "<<timestep<<" time "<<time<<" dt "<<dt<< std::endl;
+        pars.time+=pars.dt;
+        std::cout<<"Completed timestep "<<timestep<<" time "<<time<<" dt "<<pars.dt<< std::endl;
         //maxtempdif<0.5*temptol then new dt=2*dt update state to state2
 
         //if maxtempdif>temptol then new dt=0.5*dt update state to state1
@@ -81,15 +81,15 @@ int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &stat
     
     //take a full step dt
         
-        std::cout<<"solve radtrans"<<std::endl;
+        //std::cout<<"solve radtrans"<<std::endl;
         //solve_radiation_groups(mesh, state);
         solver.solveRadiationTransport(mesh, state, pars, pars.time);   //FIXME
-        std::cout<<"solved radtrans"<<std::endl;
+        //std::cout<<"solved radtrans"<<std::endl;
         //linearize_emissive_source(mesh,state,pars);  //see physics.h   
         solver.apply_milne_boundary_conditions(mesh, state, pars);   //CHECKME
-        std::cout<<"applied milne bc"<<std::endl;
+        //std::cout<<"applied milne bc"<<std::endl;
         solve_material_heating(mesh, state,pars);   //FIXME
-        std::cout<<"solved material heating"<<std::endl;
+       // std::cout<<"solved material heating"<<std::endl;
 
         //Take 2 half steps dt=dt/2
 
@@ -112,13 +112,44 @@ int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &stat
         //compare state and state2
         //eg something like this
         double maxdifrat=0.0;
+        double maxt1=0, maxt2=0;
         double dif,difrat;
+        int imt1=0, imt2=0;
         for(int i=0;i<mesh.num_cells;i++) {
             dif=fabs(state.temperature[i]-state2.temperature[i]);
-            difrat=dif/(0.5*(state.temperature[i]+state2.temperature[i])+1e-10);
+            //difrat=dif/(0.5*(state.temperature[i]+state2.temperature[i])+1e-10);
+            difrat=dif;
+            /*if(difrat>maxdifrat)
+            {
+                Cell cell=mesh.cells[i];
+                std::cout<<"i "<<i<< "   "  << cell.x << "  "<<cell.y  <<" state temp "<<state.temperature[i]<<" state2 temp "<<state2.temperature[i]<<" dif "<<dif<<" difrat "<<difrat<<std::endl;
+            }
+            if(state.temperature[i]>maxt1)
+            {
+                //Cell cell=mesh.cells[i];
+                imt1=i;
+                maxt1=state.temperature[i];
+                //std::cout<<"max t1: i "<<i<< "   "  << cell.x << "  "<<cell.y  <<" state temp "<<state.temperature[i]<<" state2 temp "<<state2.temperature[i]<<"  "<<std::endl;
+            }
+
+            if(state2.temperature[i]>maxt1)
+            {
+                //Cell cell=mesh.cells[i];
+
+                imt2=i;
+                maxt2=state2.temperature[i];
+                //std::cout<<"maxt t2: i "<<i<< "   "  << cell.x << "  "<<cell.y  <<" state temp "<<state.temperature[i]<<" state2 temp "<<state2.temperature[i]<<"  "<<std::endl;
+            }*/
             maxdifrat=(difrat>maxdifrat?difrat:maxdifrat);
+            
         }
-        std::cout<<"max temp dif ratio "<<maxdifrat<<std::endl;
+
+        /*Cell cell1=mesh.cells[imt1];
+        Cell cell2=mesh.cells[imt2];
+        std::cout<<"max t1: i "<<imt1<< "   "  << cell1.x << "  "<<cell1.y  <<" state temp "<<state.temperature[imt1]<<" state2 temp "<<state2.temperature[imt2]<<"  "<<std::endl;
+        std::cout<<"max t2: i "<<imt2<< "   "  << cell2.x << "  "<<cell2.y  <<" state temp "<<state.temperature[imt1]<<" state2 temp "<<state2.temperature[imt2]<<"  "<<std::endl;*/
+
+        //std::cout<<"max temp dif ratio "<<maxdifrat<<std::endl;
         //do some trickery to reduce the timestep
         if(maxdifrat<pars.temptol && pars.dt<pars.dtmax) {
             pars.dt=2.0*pars.dt;

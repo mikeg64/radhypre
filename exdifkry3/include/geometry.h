@@ -10,7 +10,7 @@
 class Cell {
     public:
         double x, y;
-        bool in_pipe;
+        bool in_pipe;  // true if cell is inside the pipe to be replaced by region also has integere to denote which region it's in see mesh
         int material_id;
 };
 
@@ -58,7 +58,8 @@ public:
     int nx, ny;
     double dx, dy;
     int num_cells;
-    std::vector<Cell> cells;
+    std::vector<Cell> cells;  /// list of cells in the mesh
+                              //also have identifier for list of regions
     std::vector<BoundaryCondition> boundaries;
 
 };

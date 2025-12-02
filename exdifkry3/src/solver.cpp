@@ -343,9 +343,9 @@
         std::vector<int> shuffled = ordered;
         std::shuffle(shuffled.begin(), shuffled.end(), g);
        
-        std::cout<<"In solveRadiationTransport"<<std::endl;
+        //std::cout<<"In solveRadiationTransport"<<std::endl;
         gradenergy(mesh,state,pars); // Compute the gradient of the energy
-        std::cout<<"Computed gradenergy"<<std::endl;
+        //std::cout<<"Computed gradenergy"<<std::endl;
         std::vector<double> values(7);
         std::vector<double> E_new(mesh.num_cells, 0.0);
        

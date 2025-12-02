@@ -48,7 +48,7 @@ void solve_material_heating(const Mesh& mesh, State& state, Pars &pars) {
                 etotn += state.heat_capacity[index(i,j,k)]*state.temperature[ic]; // Calculate total energy at current time step
             }
             state.etot=etotn;
-            std::cout<<"max temp change "<<delTmax<<std::endl;
+            //std::cout<<"max temp change "<<delTmax<<std::endl;
 
 
 
@@ -118,10 +118,17 @@ double initial_temperature( const Mesh& mesh, Pars &pars, int icell) {
     int j= (icell / pars.nx) % pars.ny; 
     int k= icell /(pars.nx*pars.ny);
 
-    if(i<4 && j<(3*(pars.ny/2)/4) && j>((pars.ny)/4))
-        tini=pars.tmin+1.0e9*pars.tini*std::exp(-((i-2)*(i-2)+(j-pars.ny/2)*(j-pars.ny/2))/(4.0));     
+    if(i<pars.nx/4 && j<(3*(pars.ny/2)/4) && j>((pars.ny)/4))
+        tini=pars.tmin+1.0e9*pars.tini*std::exp(-((i-2)*(i-2)+(j-pars.ny/4)*(j-pars.ny/4))/(4.0));     
     else
+    {
+        Cell cell=mesh.cells[icell];
         tini=pars.tmin;
+        if(cell.in_pipe)
+         tini=pars.tmin+500;
+
+        
+    }
 
     return tini; // Kelvin      
 
@@ -153,11 +160,11 @@ double initial_temperature( const Mesh& mesh, Pars &pars, int icell) {
         
 
         // Resize group-dependent vectors
-        radiation_flux.resize(pars.num_groups, std::vector(num_cells, 0.0));
-        radiation_fluxn.resize(pars.num_groups, std::vector(num_cells, 0.0));
-        sigma_a.resize(pars.num_groups, std::vector(num_cells, 0.0));
-        source_term.resize(pars.num_groups, std::vector(num_cells, 0.0));
-        Bag.resize(pars.num_groups, std::vector(num_cells, 0.0));
+        radiation_flux.resize(pars.num_freq_bins, std::vector(num_cells, 0.0));
+        radiation_fluxn.resize(pars.num_freq_bins, std::vector(num_cells, 0.0));
+        sigma_a.resize(pars.num_freq_bins, std::vector(num_cells, 0.0));
+        source_term.resize(pars.num_freq_bins, std::vector(num_cells, 0.0));
+        Bag.resize(pars.num_freq_bins, std::vector(num_cells, 0.0));
 
         // Resize temperature and heat capacity
         temperature.resize(num_cells, 0.0);
@@ -167,7 +174,7 @@ double initial_temperature( const Mesh& mesh, Pars &pars, int icell) {
     }
 
 
-    State::State(State &other) : radiation_flux(other.radiation_flux), sigma_a(other.sigma_a), source_term(other.source_term), temperature(other.temperature), heat_capacity(other.heat_capacity) 
+    State::State(State &other) : radiation_flux(other.radiation_flux), radiation_fluxn(other.radiation_fluxn), sigma_a(other.sigma_a), source_term(other.source_term), temperature(other.temperature), heat_capacity(other.heat_capacity) 
     {
 
     }

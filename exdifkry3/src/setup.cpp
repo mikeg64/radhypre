@@ -19,6 +19,7 @@ Pars::Pars() {
     dtmin=DTMIN;
     dtmax=DTMAX; 
     num_freq_bins = NUM_FREQ_BINS;
+    num_groups = NUM_FREQ_BINS;
     tmin = TMIN;
     tmax = TMAX;
     tini = TINI;

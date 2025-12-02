@@ -15,15 +15,9 @@ Mesh::Mesh(int mnx, int mny, double dx, double dy)  : nx(mnx), ny(mny), dx(dx), 
                 int idx = j * nx + i;
                 cells[idx].x = i * dx;
                 cells[idx].y = j * dy;
-                // Define crooked pipe: horizontal then vertical bend   ?????
-                //bool in_pipe = (j >= 8 && j <= 12 && i < 30) || (i >= 28 && i <= 32 && j >= 8 && j <= 18);
-                bool in_pipe = (j >= (ny/5) && j <= (2*ny/5) && i < (2*nx/7)) 
-                               || (i >= (2*nx/7) && i <= (3*nx/7) && j >= (ny/5) && j <= (4*ny/5))
-                               || (j >= (3*ny/5) && j <= (4*ny/5) && i >= (3*nx/7) && i <= (4*nx/7)) 
-                               || (i >= (4*nx/7) && i <= (5*nx/7) && j >= (ny/5) && j <= (4*ny/5))
-                               || (j >= (ny/5) && j <= (2*ny/5) && i >= (5*nx/7) && i <= (nx));
+                bool in_pipe =(j>=1 && j<=(ny-2) && i>=1 && i<=(nx-2)); //temp for box test           
                 cells[idx].in_pipe = in_pipe;
-                cells[idx].material_id = (in_pipe ? 1 : 0);
+                cells[idx].material_id = (in_pipe ? 1 : 0);   // the first material 0  is the wall material absorber/reflector high heat capacity
             }
         }
         // Define boundaries

@@ -118,7 +118,7 @@ int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &stat
             difrat=dif/(0.5*(state.temperature[i]+state2.temperature[i])+1e-10);
             maxdifrat=(difrat>maxdifrat?difrat:maxdifrat);
         }
-        std::cout<<"max temp dif ratio "<<maxdifrat<<std::endl;
+        //std::cout<<"max temp dif ratio "<<maxdifrat<<std::endl;
         //do some trickery to reduce the timestep
         if(maxdifrat<pars.temptol && pars.dt<pars.dtmax) {
             pars.dt=2.0*pars.dt;
