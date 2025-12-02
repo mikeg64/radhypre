@@ -76,6 +76,146 @@ int createcrookedpipe()
     return 0;
 
 }
+
+
+
+
+int initialise_materials_test()
+{
+    // Setup
+    Pars pars= Pars();
+    pars.nstep=20;
+    pars.nsaveinterval=5;
+    std::cout<<"parameters initialised"<<std::endl;
+    Mesh mesh = setup_crooked_pipe_geometry(pars);  //defined in geometry.h
+    std::cout<<"mesh initialised"<<std::endl;
+
+    Materials materials = initialize_materials(mesh);
+
+    return 0;
+}
+
+int initialise_physics_test()
+{
+    // Setup
+    Pars pars= Pars();
+    pars.nstep=20;
+    pars.nsaveinterval=5;
+    std::cout<<"parameters initialised"<<std::endl;
+    Mesh mesh = setup_crooked_pipe_geometry(pars);  //defined in geometry.h
+    std::cout<<"mesh initialised"<<std::endl;
+
+    Materials materials = initialize_materials(mesh);
+
+    State state = initialize_physics(mesh, materials,pars);  //stores the initial step
+    
+    return 0;
+
+}
+
+
+
+int initialise_solver_test()
+{
+    MPI_Init(NULL, NULL);
+  
+    // Setup
+    Pars pars= Pars();
+    pars.nstep=20;
+    pars.nsaveinterval=5;
+    std::cout<<"parameters initialised"<<std::endl;
+    Mesh mesh = setup_crooked_pipe_geometry(pars);  //defined in geometry.h
+    std::cout<<"mesh initialised"<<std::endl;
+
+    Materials materials = initialize_materials(mesh);
+
+    State state = initialize_physics(mesh, materials,pars);  //stores the initial step
+    RadSolve solver(mesh.nx, mesh.ny,pars.nz, pars);
+
+    std::cout << state.getRadiationFlux(5, 5) << std::endl;
+    //MPI_Finalize();
+    return 0;
+
+}
+
+
+int solve_radtrans_test()
+{
+   // MPI_Init(NULL, NULL);
+  
+  // Setup
+    Pars pars= Pars();
+    pars.nstep=20;
+    pars.nsaveinterval=5;
+    pars.time=0.01;
+    std::cout<<"parameters initialised"<<std::endl;
+    Mesh mesh = setup_crooked_pipe_geometry(pars);  //defined in geometry.h
+    std::cout<<"mesh initialised"<<std::endl;
+
+    Materials materials = initialize_materials(mesh);
+
+    State state = initialize_physics(mesh, materials,pars);  //stores the initial step
+    RadSolve solver(mesh.nx, mesh.ny,pars.nz, pars);
+    solver.solveRadiationTransport(mesh, state, pars, pars.time);   //FIXME
+   // MPI_Finalize();
+    return 0;
+
+}
+
+
+int milnebcs_test()
+{
+    // Setup
+    //MPI_Init(NULL, NULL);
+
+    Pars pars= Pars();
+    pars.nstep=20;
+    pars.nsaveinterval=5;
+    std::cout<<"parameters initialised"<<std::endl;
+    Mesh mesh = setup_crooked_pipe_geometry(pars);  //defined in geometry.h
+    std::cout<<"mesh initialised"<<std::endl;
+
+    Materials materials = initialize_materials(mesh);
+
+    State state = initialize_physics(mesh, materials,pars);  //stores the initial step
+    RadSolve solver(mesh.nx, mesh.ny,pars.nz, pars);
+    //MPI_Finalize();
+    return 0;
+
+}
+
+
+
+int solvematerial_heating_test()
+{
+    //MPI_Init(NULL, NULL);
+  
+    // Setup
+    Pars pars= Pars();
+    pars.nstep=20;
+    pars.nsaveinterval=5;
+    std::cout<<"parameters initialised"<<std::endl;
+    Mesh mesh = setup_crooked_pipe_geometry(pars);  //defined in geometry.h
+    std::cout<<"mesh initialised"<<std::endl;
+
+    Materials materials = initialize_materials(mesh);
+
+    State state = initialize_physics(mesh, materials,pars);  //stores the initial step
+    RadSolve solver(mesh.nx, mesh.ny,pars.nz, pars);
+    MPI_Finalize();
+    return 0;
+
+}
+
+
+
+
+
+
+
+
+
+
 /*
 //The model is a single mesh composed of
 // a collection of octants
@@ -206,85 +346,9 @@ std::shared_ptr<grid> tg=simmesh.octants[0]->mgrid[1];
 
 int CreateSweepGraph()
 {
-int result=5;
+int result=12;
   int i1,i2,i3;
-  /*RadInputData data;
-  radtmesh simmesh(data);
-  simmesh.creategrid();
-  simmesh.initgrid();*/
- 
-
-  //std::shared_ptr<grid> tg=simmesh.octants[0]->mgrid[1];
-   // std::shared_ptr<rad>rf;
-   // std::shared_ptr<rad>tnf;
- //int n1=simmesh.nx;//tg->n1;
-  //  int n2=simmesh.ny;//tg->n2;
-  //  int n3=simmesh.nz;//tg->n3; //number of cells in each direction
-
-//i1=0;
-//i2=0;
-//i3=0;
-
-   // rf= std::static_pointer_cast<rad>((tg->ifield[0]));
-    //rf= std::static_pointer_cast<rad>((tg->ifield[GETINDEX(i1,i2,i3,n1,n2,n3)])); 
-   /* if(rf !=nullptr)
-       std::cout<<rf->radtemp<<" "<<std::endl;
-    if(rf!=nullptr && rf->nbr[0]!=nullptr)
-    {
-      tnf=std::static_pointer_cast<rad>(rf->nbr[0]);
-      std::cout<<rf->radtemp<<" "<< tnf->radtemp<<std::endl;
-    }
-    else
-      std::cout<<"nullptr"<<std::endl;*/
-
-/*    std::cout<<"setup radsweepgraph"<<std::endl;
- simmesh.radsetupsweepgraph();
-
-std::cout<<"test rad pointers"<<std::endl;
-  std::shared_ptr<rad>rf;
-  std::shared_ptr<rad>tnf;
-  std::shared_ptr<rad>tnf2;
-  std::shared_ptr<rad>tnf3;
-  std::shared_ptr<rad>crad =std::make_shared<rad>(simmesh.m_nf,simmesh.m_na,1);
-  std::shared_ptr<rad>crad1 =std::make_shared<rad>(simmesh.m_nf,simmesh.m_na,1);
-  std::shared_ptr<rad>crad2 =std::make_shared<rad>(simmesh.m_nf,simmesh.m_na,1);
-  std::shared_ptr<rad>crad3 =std::make_shared<rad>(simmesh.m_nf,simmesh.m_na,1);
-  std::vector<std::shared_ptr<rad >> rads;
-  rf=crad1;
-  crad->radtemp=30;
-  crad1->radtemp=60;
-  crad2->radtemp=70;
-  crad3->radtemp=80;
-
-  crad1->nbr[0]=crad1;
-  crad1->nbr[1]=crad2;
-  crad1->nbr[2]=crad3;
-  crad1->nbr[3]=crad1;
-
-  tnf=std::static_pointer_cast<rad>(crad1->nbr[1]);
-  tnf2=std::static_pointer_cast<rad>(crad1->nbr[2]);
-  tnf3=std::static_pointer_cast<rad>(crad1->nbr[3]);
-  //rf=std::static_pointer_cast<rad>(crad->copy());
-  rf->radtemp=50;
-  rads.push_back(rf);
-  rads.push_back(crad);
-  std::cout<<"end test rad pointers"<<std::endl;
-  std::cout<<"end test rad pointers"<<tnf->radtemp<<std::endl;
-  std::cout<<"end test rad pointers"<<tnf2->radtemp<<std::endl;
-  std::cout<<"end test rad pointers"<<tnf3->radtemp<<std::endl;
-
-
-
- simmesh.setnbrcellptrs();
- 
-  result=simmesh.m_na;*/
-
-  /*std::shared_ptr<radtmesh> rtsimmesh = std::make_shared<radtmesh>(10,1,1);
-  radraytsimulation rtsimulation(rtsimmesh);
-  rtsimulation.create("");
-  rtsimulation.initgrids();
-  result=12;*/
- 
+  
 	return result;
 }
 

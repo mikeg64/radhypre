@@ -34,11 +34,24 @@
 
 
 #include "../../include/geometry.h"
+#include "../../include/material.h"
+#include "../../include/physics.h"
+#include "../../include/solver.h"
 #include "../../include/setup.h"
 
 //Instantiate octant from margery
 double ParamSetup();
 int createcrookedpipe();
+int initialise_materials_test();
+int initialise_physics_test();
+int initialise_solver_test();
+
+
+int solve_radtrans_test();
+int milnebcs_test();
+int solvematerial_heating_test();
+
+
 /*double InstantiateOctant();
 int InstantiateRadtmesh();*/
 

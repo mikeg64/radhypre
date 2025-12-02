@@ -365,11 +365,12 @@
         int iupper[3] = {pars.nx - 1, pars.ny - 1, pars.nz - 1};
         int offsets[7][3] = {{0,0,0},{-1,0,0},{1,0,0},{0,-1,0},{0,1,0},{0,0,-1},{0,0,1}};
 
-
+        //for(int nf=0; nf<=1; nf++) {
         for(int nf=0; nf<pars.num_freq_bins; nf++) {
             int n= shuffled[nf] - 1; // Get the shuffled frequency index (0-based)
+        //int n=nf;
 
-            std::cout<<"Solving frequency bin "<<n<<std::endl;
+          //  std::cout<<"Solving frequency bin "<<n<<std::endl;
         for (int k = 0; k < pars.nz; ++k)
         for (int j = 0; j < pars.ny; ++j)
         for (int i = 0; i < pars.nx; ++i) {
@@ -380,6 +381,7 @@
                                         sum4=0.0;
                                         ddelr[n][idx]=0.0;
                                         diff_coeff[n][idx]=0.0;
+                                        //std::cout<<"compute sigma coeffs  "<< i  << j  <<k <<std::endl;
                                         for(int nf1=0; nf1<pars.num_freq_bins; nf1++) {
                                             sum1+=c*state.sigma_a[nf1][idx]*state.dBnudT(state.temperature[idx],(nf1+1)*1.0e14);
                                             sum3=c*state.sigma_a[nf1][idx]*(state.Bag[nf1][idx]);
@@ -416,7 +418,7 @@
                                         HYPRE_StructVectorSetValues(b, ijk, rhs);
 
                     }  //loop over cells
-
+                    
                     HYPRE_StructMatrixAssemble(A);
                     HYPRE_StructVectorAssemble(b);
                     HYPRE_StructVectorAssemble(x);
@@ -441,11 +443,16 @@
                     // Extract solution
                     HYPRE_StructVectorGetBoxValues(x, ilower, iupper, E_new.data());
 
+
+                    //std::cout<<"updating fluxes  " <<std::endl;
                     for (int k = 0; k < pars.nz; ++k)
                         for (int j = 0; j < pars.ny; ++j)
                             for (int i = 0; i < pars.nx; ++i) {
                                 idx = index(i, j, k,pars);
+                                //FIXME
+                                //state.radiation_fluxn[n][idx] = 0;//
                                 state.radiation_fluxn[n][idx] = E_new[idx];
+                                //std::cout << E_new[idx] <<std::endl;
                             }   
 
 

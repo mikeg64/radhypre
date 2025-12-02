@@ -73,6 +73,7 @@ State initialize_physics(Mesh& mesh,  Materials& materials, Pars &pars) {
 
     // Resize group-dependent vectors
     state.radiation_flux.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
+    state.radiation_fluxn.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
     state.sigma_a.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
     state.source_term.resize(NUM_GROUPS, std::vector(num_cells, 0.0));
     state.Bag.resize(NUM_GROUPS, std::vector(num_cells, 0.0));

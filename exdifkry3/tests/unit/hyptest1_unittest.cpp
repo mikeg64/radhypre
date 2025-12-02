@@ -116,6 +116,62 @@ TEST(createcrookedpipe, Zero)
 
 }
 
+//Test the radtmesh class
+TEST(initialise_materials_test, Zero) 
+{ 
+  // Tests Octant Instantiation of 0.
+  EXPECT_EQ(0, initialise_materials_test()); 
+
+
+}
+
+//Test the radtmesh class
+TEST(initialise_physics_test, Zero) 
+{ 
+  // Tests Octant Instantiation of 0.
+  EXPECT_EQ(0, initialise_physics_test()); 
+
+
+}
+
+//Test the radtmesh class
+TEST(initialise_solver_test, Zero) 
+{ 
+  // Tests Octant Instantiation of 0.
+  EXPECT_EQ(0, initialise_solver_test()); 
+
+
+}
+
+//Test the radtmesh class
+TEST(solve_radtrans_test, Zero) 
+{ 
+  // Tests Octant Instantiation of 0.
+  EXPECT_EQ(0, solve_radtrans_test()); 
+
+
+}
+
+
+//Test the radtmesh class
+TEST(milnebcs_test, Zero) 
+{ 
+  // Tests Octant Instantiation of 0.
+  EXPECT_EQ(0, milnebcs_test()); 
+
+
+}
+
+//Test the radtmesh class
+TEST(solvematerial_heating_test, Zero) 
+{ 
+  // Tests Octant Instantiation of 0.
+  EXPECT_EQ(0, solvematerial_heating_test()); 
+
+
+}
+
+
 
 /*
 //Test the radtmesh class

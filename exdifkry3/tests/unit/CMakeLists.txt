@@ -23,8 +23,26 @@ link_directories(${HYPRE_DIR}/lib
                  ${GOOGLETEST_DIR}/lib)
                  
 
+find_library(HYPRE_LIB NAMES HYPRE PATHS ${HYPRE_DIR}/lib NO_DEFAULT_PATH)
+
+if(NOT HYPRE_LIB)
+    message(FATAL_ERROR "Could not find HYPRE library in ${HYPRE_DIR}/lib")
+endif()
+message(STATUS "Found HYPRE library: ${HYPRE_LIB}")
+
+
+# Include your own headers
+include_directories(include)
+
+
 # Include your own headers
 include_directories(../../include)
+
+
+
+
+
+
 
 # Source files
 set(SOURCES
@@ -36,4 +54,4 @@ enable_testing()
 add_executable(hyptest ${SOURCES})
 
 # Link libraries
-target_link_libraries(hyptest ${MPI_CXX_LIBRARIES} HYPRE gtest gtest_main radt_lib)
+target_link_libraries(hyptest ${MPI_CXX_LIBRARIES}  radt_lib ${HYPRE_LIB} gtest gtest_main)
