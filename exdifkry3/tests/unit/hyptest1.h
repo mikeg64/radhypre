@@ -40,10 +40,12 @@
 #include "../../include/setup.h"
 
 //Instantiate octant from margery
+int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &state2, State &statef, RadSolve &solver);
 double ParamSetup();
 int createcrookedpipe();
 int initialise_materials_test();
 int initialise_physics_test();
+int copystate_test();
 int initialise_solver_test();
 
 

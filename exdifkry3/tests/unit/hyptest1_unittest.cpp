@@ -135,6 +135,15 @@ TEST(initialise_physics_test, Zero)
 }
 
 //Test the radtmesh class
+TEST(copystate_test, Zero) 
+{ 
+  // Tests Octant Instantiation of 0.
+  EXPECT_EQ(0, copystate_test()); 
+
+
+}
+
+//Test the radtmesh class
 TEST(initialise_solver_test, Zero) 
 { 
   // Tests Octant Instantiation of 0.

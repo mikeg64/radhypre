@@ -37,6 +37,63 @@
 #include <iostream>
 
 
+int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &state2, State &statef, RadSolve &solver)
+{
+    int status=0;    
+    
+    //take a full step dt 
+        solver.solveRadiationTransport(mesh, state, pars, pars.time);   //FIXME 
+        solver.apply_milne_boundary_conditions(mesh, state, pars);   //CHECKME
+        solve_material_heating(mesh, state,pars);   //FIXME
+    
+        //Take 2 half steps dt=dt/2
+        pars.dt=0.5*pars.dt;
+        solver.solveRadiationTransport(mesh, state1, pars, pars.time); 
+        solver.apply_milne_boundary_conditions(mesh, state1, pars);
+        solve_material_heating(mesh, state1,pars);
+        
+        state2.copy(state1);
+        solver.solveRadiationTransport(mesh, state2, pars, pars.time);
+        solver.apply_milne_boundary_conditions(mesh, state2, pars);
+        solve_material_heating(mesh, state2,pars);
+        pars.dt=2.0*pars.dt;
+
+        //put this in a routine called convergence check and update dt
+        //compare state and state2
+        //eg something like this
+        double maxdifrat=0.0;
+        double dif,difrat;
+        for(int i=0;i<mesh.num_cells;i++) {
+            dif=fabs(state.temperature[i]-state2.temperature[i]);
+            //difrat=dif/(0.5*(state.temperature[i]+state2.temperature[i])+1e-10);
+            difrat=dif;
+            if(difrat>maxdifrat)
+            {
+                Cell cell=mesh.cells[i];
+                std::cout<<"i "<<i<< "   "  << cell.x << "  "<<cell.y  <<" state temp "<<state.temperature[i]<<" state2 temp "<<state2.temperature[i]<<" dif "<<dif<<" difrat "<<difrat<<std::endl;
+            }
+            maxdifrat=(difrat>maxdifrat?difrat:maxdifrat);
+            
+        }
+        //std::cout<<"max temp dif ratio "<<maxdifrat<<std::endl;
+        //do some trickery to reduce the timestep
+        if(maxdifrat<pars.temptol && pars.dt<pars.dtmax) {
+            pars.dt=2.0*pars.dt;
+            state.copy(state2);
+        }
+        else if(maxdifrat>2.0*pars.temptol && pars.dt>pars.dtmin)
+         {
+            pars.dt=0.5*pars.dt;
+            state.copy(state1);
+        }
+        //else keep time step the same and just use state
+        std::cout<<"new dt "<<pars.dt<<std::endl;
+
+        return status;
+}
+
+
+
 
 //only a single octant!
 double ParamSetup()
@@ -108,6 +165,44 @@ int initialise_physics_test()
     Materials materials = initialize_materials(mesh);
 
     State state = initialize_physics(mesh, materials,pars);  //stores the initial step
+    
+    return 0;
+
+}
+
+int copystate_test()
+{
+    // Setup
+    Pars pars= Pars();
+    pars.nstep=20;
+    pars.nsaveinterval=5;
+    std::cout<<"parameters initialised"<<std::endl;
+    Mesh mesh = setup_crooked_pipe_geometry(pars);  //defined in geometry.h
+    std::cout<<"mesh initialised"<<std::endl;
+
+    Materials materials = initialize_materials(mesh);
+
+    State state = initialize_physics(mesh, materials,pars);  //stores the initial step
+
+    int imt1=2942;
+    int imt2=2460;
+    State state1(pars);
+    State state2(state);
+    std::cout<<"states copied initialised"<<std::endl;
+    state1.temperature[imt2]+=10.0;
+    state2.copy(state1);
+
+    state2.temperature[imt2]+=10.0;
+
+ 
+
+    Cell cell1=mesh.cells[imt1];
+    Cell cell2=mesh.cells[imt2];
+    std::cout<<"max t: i "<<imt1<< "   "  << cell1.x << "  "<<cell1.y  <<" state temp "<<state.temperature[imt1]<<" state2 temp "<<state.temperature[imt2]<<"  "<<std::endl;
+    std::cout<<"max t1: i "<<imt2<< "   "  << cell2.x << "  "<<cell2.y  <<" state temp "<<state1.temperature[imt1]<<" state2 temp "<<state1.temperature[imt2]<<"  "<<std::endl;
+    std::cout<<"max t2: i "<<imt2<< "   "  << cell2.x << "  "<<cell2.y  <<" state temp "<<state2.temperature[imt1]<<" state2 temp "<<state2.temperature[imt2]<<"  "<<std::endl;
+
+    std::cout<<"state1 copied"<<std::endl;
     
     return 0;
 
