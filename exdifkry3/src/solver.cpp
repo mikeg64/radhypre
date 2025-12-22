@@ -335,6 +335,73 @@
 
     }
 
+    void RadSolve::UpdateBEmission(const Mesh& mesh, State& state, Pars &pars) {
+
+            for (int i = 0; i < mesh.num_cells; ++i) {
+                //int mat_id = mesh.cells[i].material_id;
+                
+                // Set heat capacity from material database
+                //state.heat_capacity[i] = materials.get_heat_capacity(mat_id);
+                // Set absorption coefficients per group
+                //for (int g = 0; g < NUM_GROUPS; ++g) {
+                //    state.sigma_a[g][i] = materials.get_sigma_a(mat_id);// this for different frequency groups (mat_id, g);
+                //}
+
+                // Initialize source term using blackbody emission
+                //double T4 = std::pow(state.temperature[i], 4);
+                //state.etot=0.0;
+                for (int g = 0; g < pars.num_freq_bins; ++g) {
+                    //state.source_term[g][i] = state.sigma_a[g][i] * STEFAN_BOLTZMANN * T4;
+                    state.source_term[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ; // why do we need this????  this is another source term at initialisation zero?? or whatever we require
+                    state.Bag[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ; 
+                    //state.radiation_flux[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ;
+                    //state.radiation_fluxn[g][i] = state.radiation_flux[g][i] ;  
+                    //state.etot+=state.radiation_flux[g][i];
+                }
+            }
+
+
+
+    }
+
+
+
+    void RadSolve::UpdateRadFlux(const Mesh& mesh, State& state, Pars &pars) {
+
+            for (int i = 0; i < mesh.num_cells; ++i) {
+                //int mat_id = mesh.cells[i].material_id;
+                
+                // Set heat capacity from material database
+                //state.heat_capacity[i] = materials.get_heat_capacity(mat_id);
+                // Set absorption coefficients per group
+                //for (int g = 0; g < NUM_GROUPS; ++g) {
+                //    state.sigma_a[g][i] = materials.get_sigma_a(mat_id);// this for different frequency groups (mat_id, g);
+                //}
+
+                // Initialize source term using blackbody emission
+                //double T4 = std::pow(state.temperature[i], 4);
+                //state.etot=0.0;
+                for (int g = 0; g < pars.num_freq_bins; ++g) {
+                    //state.source_term[g][i] = state.sigma_a[g][i] * STEFAN_BOLTZMANN * T4;
+                    //state.source_term[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ; // why do we need this????  this is another source term at initialisation zero?? or whatever we require
+                    //state.Bag[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ; 
+                    //state.radiation_flux[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ;
+                    state.radiation_flux[g][i] = state.radiation_fluxn[g][i] ;  
+                    //state.etot+=state.radiation_flux[g][i];
+                }
+            }
+
+
+
+    }
+
+
+
+
+
+
+
+
 
     void RadSolve::solveRadiationTransport(const Mesh& mesh, State& state, Pars &pars, double t) {
 
@@ -383,17 +450,22 @@
                                         diff_coeff[n][idx]=0.0;
                                         //std::cout<<"compute sigma coeffs  "<< i  << j  <<k <<std::endl;
                                         for(int nf1=0; nf1<pars.num_freq_bins; nf1++) {
-                                            sum1+=c*state.sigma_a[nf1][idx]*state.dBnudT(state.temperature[idx],(nf1+1)*1.0e14);
-                                            sum3=c*state.sigma_a[nf1][idx]*(state.Bag[nf1][idx]);
-                                            sum4=sum4+c*state.sigma_a[nf1][idx]*state.radiation_flux[nf1][idx];
+                                            sum1+=c*state.sigma_a[nf1][idx]*state.dBnudT(state.temperature[idx],(nf1+1)*1.0e14);  //used to compute kappa too
+                                            sum3+=c*state.sigma_a[nf1][idx]*(state.Bag[nf1][idx]);
+                                            sum4+=c*state.sigma_a[nf1][idx]*state.radiation_fluxn[nf1][idx];
 
                                         }
+                                        //if (i==25 && j==10)  {
+                                        //    std::cout<<"Computed sums "<<state.temperature[idx]<<" "<<state.dBnudT(state.temperature[idx],(n+1)*1.0e14) << "  "  <<sum1<<" "<<sum2<<" "<<sum3<<" "<<sum4<<std::endl;
+                                        //}
                                         diff_coeff[n][idx]=larsendelimiter(mesh,state,pars,state.sigma_a[n][idx],i,j,k,n);
                                         ddelr[n][idx]=divergence(mesh,state,pars,i,j,k,n);
                                         ;//std::cout<<"Computed diff_coeff and ddelr "<<diff_coeff[n][idx]<<" "<<ddelr[n][idx]<<std::endl;
                                         kappa_nu=1.0/(sum2+sum1);
 
+                                        
                                         double diag = pars.scale*((1.0/ (c*pars.dt)) + ddelr[n][idx] + state.sigma_a[n][idx]);
+                                        //double diag = pars.scale;
                                         double D=ddelr[n][idx];
                                         values[0] = diag;
                                         for (int s = 1; s < 7; ++s) values[s] = -D ;
@@ -402,11 +474,19 @@
                                         //std::cout<<"Setting matrix and emission values at cell "<<idx<<" i,j,k "<<i<<" "<<j<<" "<<k<<std::endl
                                          HYPRE_StructMatrixSetValues(A, ijk, 7, (HYPRE_Int*)iindex, values.data());
                                         double emission = pars.emisscale*state.sigma_a[n][idx] * state.Bag[n][idx]; // if treating B_nu as external source
-                                        ;//std::cout<<"Computed emission "<<emission<<std::endl;
+                                        emission-= pars.emisscale*state.sigma_a[n][idx]*sum3*kappa_nu*pars.dt*state.dBnudT(state.temperature[idx],(n+1)*1.0e14); // add in contribution from other frequencies
+                                        emission+= pars.emisscale*state.sigma_a[n][idx]*state.dBnudT(state.temperature[idx],(n+1)*1.0e14)*sum4*kappa_nu*pars.dt; // add in contribution
+                                        //kappa_nu=1.0; //found to be nan!
+                                        //double emission=/*pars.emisscale*state.sigma_a[n][idx]*sum3*kappa_nu*pars.dt**/state.dBnudT(state.temperature[idx],(n+1)*1.0e14);  //second def line
+                                        //if (i==100 && j==10)  {
+                                        //    std::cout<<"Computed emission "<<emission<<std::endl;
+                                        //}
                                         //emission=0.0;
                                         double rhs = (state.radiation_flux[n][idx]  / (c*pars.dt)) + state.sigma_a[n][idx]*state.Bag[n][idx] +emission;
-
-                                        //std::cout<< rhs<<" "<<emission<<" "<<diag<<" "<<D<<" "<<state.sigma_a[n][idx]<<" "<<state.radiation_flux[n][idx]<<" "<<Bag[n][idx]<<" "<<pars.dt<<std::endl;
+                                        //double rhs = (state.radiation_flux[n][idx]  / (c*pars.dt))  +emission;
+                                        //double rhs = (state.radiation_flux[n][idx] );
+                                        // if (i==25 && j==10)  
+                                        //   std::cout<< rhs<<" "<<emission<<" "<<diag<<" "<<D<<" "<<state.sigma_a[n][idx]<<" "<<state.radiation_flux[n][idx]<<" "<<Bag[n][idx]<<" "<<pars.dt<<std::endl;
 
                                         sumrhs=(fabs(rhs)>sumrhs?fabs(rhs):sumrhs);
                                         sumemis=(fabs(emission)>sumemis?fabs(emission):sumemis);
@@ -449,9 +529,12 @@
                         for (int j = 0; j < pars.ny; ++j)
                             for (int i = 0; i < pars.nx; ++i) {
                                 idx = index(i, j, k,pars);
-                                //FIXME
+                                //FIXME help i still need fixing sometimes i am zero!
                                 //state.radiation_fluxn[n][idx] = 0;//
                                 state.radiation_fluxn[n][idx] = E_new[idx];
+                                //if (i==25 && j==10)  
+                                //           std::cout<<state.radiation_flux[n][idx]<<" "<<Bag[n][idx]<<" "<<pars.dt<<std::endl;
+
                                 //std::cout << E_new[idx] <<std::endl;
                             }   
 

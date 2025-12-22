@@ -143,11 +143,93 @@ int initialise_materials_test()
     Pars pars= Pars();
     pars.nstep=20;
     pars.nsaveinterval=5;
+
+        pars.nx=200;
+    pars.ny=20; 
+    pars.dx=0.1;
+    pars.dy=0.1;
+    pars.nz=1;
+
+    // Setup: mesh and state with top-hat initial condition
+    Mesh mesh(200, 20,0.1,0.1); // example dimensions
     std::cout<<"parameters initialised"<<std::endl;
-    Mesh mesh = setup_crooked_pipe_geometry(pars);  //defined in geometry.h
+    //Mesh mesh = setup_crooked_pipe_geometry(pars);  //defined in geometry.h
     std::cout<<"mesh initialised"<<std::endl;
 
     Materials materials = initialize_materials(mesh);
+
+  int ix,iy,icell;
+
+  std::cout<<"Materials initialised: before copper added"<<std::endl;
+
+  ix=0,iy=10;
+    icell= ix + iy*mesh.nx;
+    std::cout<<"Material id at ("<<ix<<","<<iy<<") : "<<mesh.cells[icell].material_id<< "  sigma_a "<<materials.get_sigma_a(mesh.cells[icell].material_id)<<"  heat capacity "<<materials.get_heat_capacity(mesh.cells[icell].material_id)<<std::endl; 
+    ix=0,iy=0;
+    icell= ix + iy*mesh.nx;
+    std::cout<<"Material id at ("<<ix<<","<<iy<<") : "<<mesh.cells[icell].material_id<< "  sigma_a "<<materials.get_sigma_a(mesh.cells[icell].material_id)<<"  heat capacity "<<materials.get_heat_capacity(mesh.cells[icell].material_id)<<std::endl; 
+
+    ix=50,iy=10;
+    icell= ix + iy*mesh.nx;
+    std::cout<<"Material id at ("<<ix<<","<<iy<<") : "<<mesh.cells[icell].material_id<< "  sigma_a "<<materials.get_sigma_a(mesh.cells[icell].material_id)<<"  heat capacity "<<materials.get_heat_capacity(mesh.cells[icell].material_id)<<std::endl; 
+
+    ix=50,iy=0;
+    icell= ix + iy*mesh.nx;
+    std::cout<<"Material id at ("<<ix<<","<<iy<<") : "<<mesh.cells[icell].material_id<< "  sigma_a "<<materials.get_sigma_a(mesh.cells[icell].material_id)<<"  heat capacity "<<materials.get_heat_capacity(mesh.cells[icell].material_id)<<std::endl; 
+
+    ix=150,iy=10;
+    icell= ix + iy*mesh.nx;
+    std::cout<<"Material id at ("<<ix<<","<<iy<<") : "<<mesh.cells[icell].material_id<< "  sigma_a "<<materials.get_sigma_a(mesh.cells[icell].material_id)<<"  heat capacity "<<materials.get_heat_capacity(mesh.cells[icell].material_id)<<std::endl; 
+
+
+
+
+
+
+    MaterialProperties copper{0.15, 385.0};
+    int status = materials.add_material(2, copper);  //add absorbant copper to right hand side
+
+
+
+    // Assign materials along pipe
+    /*for (int i = 0; i < 100; ++i)
+        mesh.setMaterial(i, thin);
+    for (int i = 100; i < 200; ++i)
+        mesh.setMaterial(i, thick);   */
+
+    for(int i=0;i<mesh.num_cells;i++) {
+        int ix=i%mesh.nx;
+        int iy=i/mesh.nx;
+        if((ix>=mesh.nx/2) && mesh.cells[i].in_pipe) 
+            mesh.cells[i].material_id=2; //copper  
+    }
+
+    //test material props for the mesh
+  std::cout<<"Materials initialised: after copper added"<<std::endl;
+    ix=0,iy=10;
+    icell= ix + iy*mesh.nx;
+    std::cout<<"Material id at ("<<ix<<","<<iy<<") : "<<mesh.cells[icell].material_id<< "  sigma_a "<<materials.get_sigma_a(mesh.cells[icell].material_id)<<"  heat capacity "<<materials.get_heat_capacity(mesh.cells[icell].material_id)<<std::endl; 
+    ix=0,iy=0;
+    icell= ix + iy*mesh.nx;
+    std::cout<<"Material id at ("<<ix<<","<<iy<<") : "<<mesh.cells[icell].material_id<< "  sigma_a "<<materials.get_sigma_a(mesh.cells[icell].material_id)<<"  heat capacity "<<materials.get_heat_capacity(mesh.cells[icell].material_id)<<std::endl; 
+
+    ix=50,iy=10;
+    icell= ix + iy*mesh.nx;
+    std::cout<<"Material id at ("<<ix<<","<<iy<<") : "<<mesh.cells[icell].material_id<< "  sigma_a "<<materials.get_sigma_a(mesh.cells[icell].material_id)<<"  heat capacity "<<materials.get_heat_capacity(mesh.cells[icell].material_id)<<std::endl; 
+
+    ix=50,iy=0;
+    icell= ix + iy*mesh.nx;
+    std::cout<<"Material id at ("<<ix<<","<<iy<<") : "<<mesh.cells[icell].material_id<< "  sigma_a "<<materials.get_sigma_a(mesh.cells[icell].material_id)<<"  heat capacity "<<materials.get_heat_capacity(mesh.cells[icell].material_id)<<std::endl; 
+
+    ix=150,iy=10;
+    icell= ix + iy*mesh.nx;
+    std::cout<<"Material id at ("<<ix<<","<<iy<<") : "<<mesh.cells[icell].material_id<< "  sigma_a "<<materials.get_sigma_a(mesh.cells[icell].material_id)<<"  heat capacity "<<materials.get_heat_capacity(mesh.cells[icell].material_id)<<std::endl; 
+
+    ix=150,iy=0;
+    icell= ix + iy*mesh.nx;
+    std::cout<<"Material id at ("<<ix<<","<<iy<<") : "<<mesh.cells[icell].material_id<< "  sigma_a "<<materials.get_sigma_a(mesh.cells[icell].material_id)<<"  heat capacity "<<materials.get_heat_capacity(mesh.cells[icell].material_id)<<std::endl; 
+
+
 
     return 0;
 }

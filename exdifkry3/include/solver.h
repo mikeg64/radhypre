@@ -33,7 +33,8 @@ public:
     double larsendelimiter(const Mesh &mesh, State &state, Pars &pars, double opact, int i, int j, int k, int ifreq,int ord=2);
     double divergence(const Mesh &mesh, State &state, Pars &pars, int i, int j, int k, int ifreq);
     void solveRadiationTransport(const Mesh& mesh, State& state,  Pars &pars, double t);
-
+    void UpdateBEmission(const Mesh& mesh, State& state, Pars &pars);
+    void UpdateRadFlux(const Mesh& mesh, State& state, Pars &pars);
     void apply_milne_boundary_conditions(Mesh& mesh, State& state, Pars &pars);
     void apply_reflect_boundary_conditions(Mesh& mesh, State& state, Pars &pars);
     int updatestate(Pars &pars, Mesh &mesh, State &state);

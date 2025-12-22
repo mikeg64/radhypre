@@ -35,13 +35,19 @@ void solve_material_heating(const Mesh& mesh, State& state, Pars &pars) {
                 int ic=index(i,j,k,pars);
                 for(int n=0; n<pars.num_freq_bins; n++) 
                 {
-                    sum1+= (c*state.sigma_a[n][ic]*(state.radiation_flux[n][ic]-state.Bag[n][ic]));
+                    sum1+= (c*state.sigma_a[n][ic]*(state.radiation_fluxn[n][ic]-state.Bag[n][ic]));
                     sum2+= (c*state.sigma_a[n][ic]*dBnudT(state.temperature[ic],(n+1)*1.0e14));
                     etotn+=state.radiation_flux[n][index(i,j,k,pars)];
-                              
+                    //if (i==25 && j==10)  {
+                    //        std::cout<<"Freqs "<<  n<< " " <<state.sigma_a[n][ic] <<"  " << state.radiation_fluxn[n][ic]  <<" "<<state.Bag[n][ic]  << "  "  <<sum1<<" "<<sum2<<" "<<" "<<sum4<<std::endl;             
+                    //    }
                 }
-                //Tn[i][j][k]=Tc[i][j][k] + ((sum1/sum4)/(1+sum2));
                 state.temperature[ic] += pars.dt*(sum1/(sum2+sum4));
+                //if (i==25 && j==10)  {
+                //    std::cout<<"Computed sums "<<state.temperature[ic]<<" "<<state.dBnudT(state.temperature[ic],(1)*1.0e14) << "  "  <<sum1<<" "<<sum2<<" "<<" "<<sum4<<std::endl;
+                //}
+                //Tn[i][j][k]=Tc[i][j][k] + ((sum1/sum4)/(1+sum2));
+                
                 delT=fabs(pars.dt*(sum1/(sum2+sum4)));
                 if(delT>delTmax) delTmax=delT;
                 //apply boundary condition
@@ -101,7 +107,8 @@ State initialize_physics(Mesh& mesh,  Materials& materials, Pars &pars) {
             //state.source_term[g][i] = state.sigma_a[g][i] * STEFAN_BOLTZMANN * T4;
             state.source_term[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ; 
             state.Bag[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ; 
-            state.radiation_flux[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ; 
+            state.radiation_flux[g][i] = planck_emission(  (g+1)*1e14,state.temperature[i]) ;
+            state.radiation_fluxn[g][i] = state.radiation_flux[g][i] ;  
             state.etot+=state.radiation_flux[g][i];
         }
     }
@@ -291,10 +298,67 @@ double initial_temperature( const Mesh& mesh, Pars &pars, int icell) {
 
 
     // Function to compute Planck distribution
+    /*double State::dBnudT(double T, double nu)
+    {
+        //return (exp(h*nu/(k*T))*2 * pow(h,2) * pow(nu, 4) / (k*pow(T,2)*pow(c, 2))) / pow(exp(h * nu / (k * T)) - 1,2);
+
+        const double h = 6.62607015e-27;     // erg·s
+        const double c = 2.99792458e10;      // cm/s
+        const double k = 1.380649e-16;       // erg/K
+        double res=0;
+
+        double x = h * nu / (k * T);
+        double exp_x = 1.0; //std::exp(x);
+        double factor = (2.0 * h * h * nu * nu * nu * nu) / (c * c * k * T * T);
+        res= factor * exp_x / std::pow(exp_x - 1.0, 2);
+
+        return res;
+
+
+    }*/
+
+  
+
     double State::dBnudT(double T, double nu)
     {
-        return (exp(h*nu/(k*T))*2 * pow(h,2) * pow(nu, 4) / (k*pow(T,2)*pow(c, 2))) / pow(exp(h * nu / (k * T)) - 1,2);
+        const double h = 6.62607015e-27;     // erg·s
+        const double c = 2.99792458e10;      // cm/s
+        const double k = 1.380649e-16;       // erg/K
+
+        // Basic input checks
+        if (T <= 0.0 || nu <= 0.0) return 0.0;
+
+        double x = h * nu / (k * T);
+        double prefactor = (2.0 * h * h * std::pow(nu, 4)) / (c * c * k * T * T);
+
+        const double x_small = 1e-3;  // small-x threshold
+        const double x_large = 50.0;  // large-x threshold to avoid exp(x) overflow
+
+        if (std::abs(x) < x_small) {
+            // Small-x: e^x/(e^x - 1)^2 ≈ 1/x^2 + 1/12 + x^2/240 + x^4/6048
+            double x2 = x * x;
+            double series = (1.0 / x2) + (1.0 / 12.0) + (x2 / 240.0) + (x2 * x2 / 6048.0);
+            return prefactor * series;
+        } else if (x > x_large) {
+            // Large-x: use asymptotic e^{-x} to avoid overflow
+            return prefactor * std::exp(-x);
+        } else if (x < -x_large) {
+            // Very negative x is unphysical here (T>0, nu>0 ⇒ x>0), but handle gracefully
+            double exp_x = std::exp(x);      // small, safe
+            double denom = std::expm1(x);    // negative, safe magnitude
+            return prefactor * exp_x / (denom * denom);
+        } else {
+            // Moderate-x: stable computation with expm1
+            double exp_x = std::exp(x);
+            double denom = std::expm1(x);    // exp(x) - 1
+            return prefactor * exp_x / (denom * denom);
+        }
     }
+
+
+
+
+
 
 
 
@@ -303,7 +367,7 @@ double initial_temperature( const Mesh& mesh, Pars &pars, int icell) {
 
 //same as B_nu but for Planck's law
 // This function computes the spectral radiance of a black body at frequency nu and temperature T
-double planck_emission(double nu, double T) {
+/*double planck_emission(double nu, double T) {
     //const double h = 6.62607015e-27;     // erg·s
     //const double c = 2.99792458e10;      // cm/s
     //const double k = 1.380649e-16;       // erg/K
@@ -313,7 +377,40 @@ double planck_emission(double nu, double T) {
     double denominator = std::exp(exponent) - 1.0;
 
     return numerator / denominator; // erg·s⁻¹·cm⁻²·Hz⁻¹·sr⁻¹
+}*/
+
+
+double planck_emission(double nu, double T)
+{
+    const double h = 6.62607015e-27;     // erg·s
+    const double c = 2.99792458e10;      // cm/s
+    const double k = 1.380649e-16;       // erg/K
+
+    if (T <= 0.0 || nu <= 0.0) return 0.0;
+
+    double x = h * nu / (k * T);
+    double prefactor = (2.0 * h * std::pow(nu, 3)) / (c * c);
+
+    const double x_small = 1e-3;   // threshold for small-x expansion
+    const double x_large = 50.0;   // threshold for large-x asymptotic
+
+    if (x < x_small) {
+        // Small-x expansion: 1/(e^x - 1) ≈ 1/x - 1/2 + x/12 - x^3/720
+        double series = (1.0 / x) - 0.5 + (x / 12.0) - (x*x*x / 720.0);
+        return prefactor * series;
+    } else if (x > x_large) {
+        // Large-x asymptotic: 1/(e^x - 1) ≈ e^{-x}
+        return prefactor * std::exp(-x);
+    } else {
+        // Moderate-x: stable computation using expm1
+        double denom = std::expm1(x);  // exp(x) - 1, accurate near zero
+        return prefactor / denom;
+    }
 }
+
+
+
+
 
 
 // Function to compute Planck distribution
