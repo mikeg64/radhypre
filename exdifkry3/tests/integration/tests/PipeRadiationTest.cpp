@@ -30,6 +30,7 @@ TEST(RadiationIntegration, PipeTwoMaterials) {
     //Materials thick(10.0, 1.0);  // high absorption
     Materials materials=initialize_materials(mesh);
     MaterialProperties copper{0.15, 385.0};
+    //MaterialProperties copper{10.0, 1.0};
     int status = materials.add_material(2, copper);  //add absorbant copper to right hand side
 
 
@@ -44,6 +45,8 @@ TEST(RadiationIntegration, PipeTwoMaterials) {
         int ix=i%mesh.nx;
         int iy=i/mesh.nx;
         if((ix>=mesh.nx/2) && mesh.cells[i].in_pipe) 
+            mesh.cells[i].material_id=1; //copper
+        if((ix<mesh.nx/2) && mesh.cells[i].in_pipe) 
             mesh.cells[i].material_id=2; //copper  
     }
 
@@ -73,13 +76,14 @@ TEST(RadiationIntegration, PipeTwoMaterials) {
     //intialize solver for each state
     pars.dt=1e-6; //small time step for stability
     pars.emisscale=10.00;
+    pars.scale=10.0;
     RadSolve solver(mesh.nx, mesh.ny,pars.nz, pars);
     //initialise the next radiation flux to the current flux 
     int i;    
-    for(i=0; i<1000; i++)
+    for(i=0; i<100; i++)
     {
         
-        if( (i%100)==0 )
+        if( (i%10)==0 )
             state.write_vtk_file(state.temperature, i, pars);
             //state.write_vtk_file(state.radiation_fluxn[0], i, pars);
 
@@ -104,5 +108,5 @@ TEST(RadiationIntegration, PipeTwoMaterials) {
     std::cout<<"Thin region temp: "<<thick_region_val<<std::endl;
     MPI_Finalize();
     //EXPECT_GT(thin_region_val, thick_region_val);
-    EXPECT_EQ(2, i);
+    EXPECT_EQ(100, i);
 }

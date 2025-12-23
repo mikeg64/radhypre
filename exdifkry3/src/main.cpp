@@ -84,27 +84,36 @@ int updatestate(Pars &pars, Mesh &mesh, State &state, State &state1, State &stat
         std::cout<<"solve radtrans"<<std::endl;
         //solve_radiation_groups(mesh, state);
         solver.solveRadiationTransport(mesh, state, pars, pars.time);   //FIXME
+        solver.solveRadiationTransport(mesh, state, pars, pars.time);   //FIXME
         std::cout<<"solved radtrans"<<std::endl;
         //linearize_emissive_source(mesh,state,pars);  //see physics.h   
         solver.apply_milne_boundary_conditions(mesh, state, pars);   //CHECKME
         std::cout<<"applied milne bc"<<std::endl;
         solve_material_heating(mesh, state,pars);   //FIXME
+        solver.UpdateBEmission(mesh, state, pars);  
+        solver.UpdateRadFlux(mesh, state, pars);
         std::cout<<"solved material heating"<<std::endl;
 
         //Take 2 half steps dt=dt/2
 
         pars.dt=0.5*pars.dt;
         solver.solveRadiationTransport(mesh, state1, pars, pars.time);
+        solver.solveRadiationTransport(mesh, state1, pars, pars.time);
         //solve_radiation_groups(mesh, state1);   
         solver.apply_milne_boundary_conditions(mesh, state1, pars);
         solve_material_heating(mesh, state1,pars);
+        solver.UpdateBEmission(mesh, state1, pars);  
+        solver.UpdateRadFlux(mesh, state1, pars);
         //linearize_emissive_source(mesh,state1,pars);  //see physics.h
 
         state2.copy(state1);
         solver.solveRadiationTransport(mesh, state2, pars, pars.time);
+        solver.solveRadiationTransport(mesh, state2, pars, pars.time);
         //solve_radiation_groups(mesh, state2);
         solver.apply_milne_boundary_conditions(mesh, state2, pars);
         solve_material_heating(mesh, state2,pars);
+        solver.UpdateBEmission(mesh, state2, pars);  
+        solver.UpdateRadFlux(mesh, state2, pars);   
         //linearize_emissive_source(mesh,state2,pars);  //see physics.h
         pars.dt=2.0*pars.dt;
 

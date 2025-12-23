@@ -27,11 +27,35 @@ TEST(DiffusionIntegration, TopHatProfile) {
 
     
     //intialize solver for each state
-    ;//RadSolve solver(mesh.nx, mesh.ny,pars.nz, pars);
+
+
+    pars.dt=1e-6; //small time step for stability
+    pars.emisscale=10.00;
+    pars.scale=10.0;
+    RadSolve solver(mesh.nx, mesh.ny,pars.nz, pars);
 
     int i;
     for(i=0; i<50; i++)
-       ;// solver.updatestate(pars,mesh,state);
+    {
+
+        if( (i%10)==0 )
+            state.write_vtk_file(state.temperature, i, pars);
+
+        solver.solveRadiationTransport(mesh, state, pars, pars.time);
+
+        solver.solveRadiationTransport(mesh, state, pars, pars.time);   //FIXME
+        solver.solveRadiationTransport(mesh, state, pars, pars.time);   //FIXME
+        std::cout<<"solved radtrans"<<std::endl; 
+        ;//solver.apply_milne_boundary_conditions(mesh, state, pars);   //CHECKME
+        std::cout<<"applied milne bc"<<std::endl;
+        solve_material_heating(mesh, state,pars);   //FIXME  // generates nans! in the copper region
+        solver.UpdateBEmission(mesh, state, pars);  
+        solver.UpdateRadFlux(mesh, state, pars);
+        
+        pars.time+=pars.dt;
+
+    }
+       
 
     // Check: diffusion should smooth the top-hat edges
     double center = state.getTemperatureField()[50+50*100];
